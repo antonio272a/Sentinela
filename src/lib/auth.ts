@@ -2,11 +2,12 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 import { SignJWT, jwtVerify } from "jose";
+import { getEnv } from "./env";
 
 export const SESSION_COOKIE_NAME = "sentinela-session";
 export const DEFAULT_EXPIRATION = 60 * 60 * 24 * 7; // 7 dias
 
-const secret = process.env.AUTH_SECRET ?? "sentinela-development-secret";
+const secret = getEnv("AUTH_SECRET") ?? "sentinela-development-secret";
 const secretKey = new TextEncoder().encode(secret);
 
 export interface SessionPayload {

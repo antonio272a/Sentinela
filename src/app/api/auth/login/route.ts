@@ -35,6 +35,15 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (user.status !== "active") {
+    return NextResponse.json(
+      {
+        message: "Confirme seu e-mail antes de acessar o Sentinela.",
+      },
+      { status: 403 }
+    );
+  }
+
   const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 
   if (!isPasswordValid) {
