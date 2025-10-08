@@ -31,7 +31,7 @@ function validatePayload(body: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  const user = getUserFromRequest(request);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const user = getUserFromRequest(request);
+  const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
   }
