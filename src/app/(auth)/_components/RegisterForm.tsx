@@ -3,16 +3,18 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { calculateAgeFromBirthDate } from "@/lib/date";
+
 interface FormState {
   name: string;
-  age: string;
+  birthDate: string;
   email: string;
   password: string;
 }
 
 const INITIAL_STATE: FormState = {
   name: "",
-  age: "",
+  birthDate: "",
   email: "",
   password: "",
 };
@@ -21,7 +23,7 @@ function validateEmail(email: string) {
   return /\S+@\S+\.\S+/.test(email);
 }
 
-async function registerRequest(payload: { name: string; age: number; email: string; password: string }) {
+async function registerRequest(payload: { name: string; birthDate: string; email: string; password: string }) {
   const response = await fetch("/api/auth/register", {
     method: "POST",
     headers: {
@@ -45,7 +47,41 @@ export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
 
   const isEmailValid = useMemo(() => !form.email || validateEmail(form.email), [form.email]);
-  const isAgeValid = useMemo(() => !form.age || Number.parseInt(form.age, 10) >= 18, [form.age]);
+  const birthDateErrorMessage = useMemo(() => {
+    if (!form.birthDate) {
+      return null;
+    }
+
+    const age = calculateAgeFromBirthDate(form.birthDate);
+
+    if (age === null) {
+      return "Informe uma data de nascimento válida.";
+    }
+
+    if (age < 18) {
+      return "Usuários precisam ter ao menos 18 anos.";
+    }
+
+    return null;
+  }, [form.birthDate]);
+
+  const passwordErrorMessage = useMemo(() => {
+    if (!form.password) {
+      return null;
+    }
+
+    if (form.password.length < 8) {
+      return "A senha deve ter ao menos 8 caracteres.";
+    }
+
+    return null;
+  }, [form.password]);
+
+  const maxBirthDate = useMemo(() => {
+    const today = new Date();
+    const reference = new Date(Date.UTC(today.getUTCFullYear() - 18, today.getUTCMonth(), today.getUTCDate()));
+    return reference.toISOString().slice(0, 10);
+  }, []);
 
   const handleChange = (field: keyof FormState) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setForm((previous) => ({ ...previous, [field]: event.target.value }));
@@ -56,7 +92,7 @@ export function RegisterForm() {
     setError(null);
     setSuccess(null);
 
-    if (!form.name || !form.age || !form.email || !form.password) {
+    if (!form.name || !form.birthDate || !form.email || !form.password) {
       setError("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -66,18 +102,21 @@ export function RegisterForm() {
       return;
     }
 
-    if (!isAgeValid) {
-      setError("Usuários precisam ter ao menos 18 anos.");
+    if (birthDateErrorMessage) {
+      setError(birthDateErrorMessage);
       return;
     }
 
-    const age = Number.parseInt(form.age, 10);
+    if (passwordErrorMessage) {
+      setError(passwordErrorMessage);
+      return;
+    }
 
     setIsLoading(true);
     try {
       await registerRequest({
         name: form.name.trim(),
-        age,
+        birthDate: form.birthDate,
         email: form.email.toLowerCase(),
         password: form.password,
       });
@@ -115,22 +154,22 @@ export function RegisterForm() {
           />
         </div>
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-200" htmlFor="age">
-            Idade
+          <label className="text-sm font-medium text-slate-200" htmlFor="birthDate">
+            Data de nascimento
           </label>
           <input
-            id="age"
-            type="number"
-            min={18}
+            id="birthDate"
+            type="date"
+            autoComplete="bday"
+            max={maxBirthDate}
             className="w-full rounded-xl border border-white/10 bg-[#090f1f]/70 px-4 py-3 text-sm text-white outline-none transition focus:border-emerald-400/60 focus:ring-2 focus:ring-emerald-400/40"
-            placeholder="Informe sua idade"
-            value={form.age}
-            onChange={handleChange("age")}
+            value={form.birthDate}
+            onChange={handleChange("birthDate")}
             required
           />
-          {!isAgeValid && (
-            <p className="text-xs text-red-200">Usuários precisam ter ao menos 18 anos.</p>
-          )}
+          {birthDateErrorMessage ? (
+            <p className="text-xs text-red-200">{birthDateErrorMessage}</p>
+          ) : null}
         </div>
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-200" htmlFor="email">
@@ -165,6 +204,9 @@ export function RegisterForm() {
             onChange={handleChange("password")}
             required
           />
+          {passwordErrorMessage ? (
+            <p className="text-xs text-red-200">{passwordErrorMessage}</p>
+          ) : null}
         </div>
         {error ? (
           <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>

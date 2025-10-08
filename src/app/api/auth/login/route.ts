@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getUserByEmail } from "@/lib/db";
+import { calculateAgeFromBirthDate } from "@/lib/date";
 import {
   DEFAULT_EXPIRATION,
   SESSION_COOKIE_NAME,
@@ -51,12 +52,15 @@ export async function POST(request: NextRequest) {
     name: user.name,
   });
 
+  const age = calculateAgeFromBirthDate(user.birthDate);
+
   const response = NextResponse.json({
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
-      age: user.age,
+      birthDate: user.birthDate,
+      age,
       createdAt: user.createdAt,
     },
   });

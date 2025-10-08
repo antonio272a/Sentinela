@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 async function loginRequest(email: string, password: string) {
@@ -21,16 +22,15 @@ async function loginRequest(email: string, password: string) {
 }
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-    setSuccess(null);
 
     if (!email || !password) {
       setError("Informe e-mail e senha para continuar.");
@@ -40,7 +40,8 @@ export function LoginForm() {
     setIsLoading(true);
     try {
       await loginRequest(email, password);
-      setSuccess("Login realizado com sucesso!");
+      router.replace("/dashboard");
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
@@ -92,11 +93,6 @@ export function LoginForm() {
         </div>
         {error ? (
           <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>
-        ) : null}
-        {success ? (
-          <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-            {success}
-          </p>
         ) : null}
         <button
           type="submit"

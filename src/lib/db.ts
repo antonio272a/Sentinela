@@ -5,7 +5,7 @@ import path from "node:path";
 export interface UserRecord {
   id: number;
   name: string;
-  age: number;
+  birthDate: string;
   email: string;
   passwordHash: string;
   createdAt: string;
@@ -35,7 +35,7 @@ database.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
-    age INTEGER NOT NULL CHECK(age >= 0),
+    birthDate TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     passwordHash TEXT NOT NULL,
     createdAt TEXT NOT NULL DEFAULT (datetime('now'))
@@ -57,25 +57,25 @@ database.exec(`
 
 export function getUserByEmail(email: string): UserRecord | undefined {
   const statement = database.prepare(
-    "SELECT id, name, age, email, passwordHash, createdAt FROM users WHERE email = ?"
+    "SELECT id, name, birthDate, email, passwordHash, createdAt FROM users WHERE email = ?"
   );
   return statement.get(email) as UserRecord | undefined;
 }
 
 export function createUser(user: {
   name: string;
-  age: number;
+  birthDate: string;
   email: string;
   passwordHash: string;
 }): UserRecord {
   const insert = database.prepare(
-    `INSERT INTO users (name, age, email, passwordHash, createdAt)
-     VALUES (@name, @age, @email, @passwordHash, datetime('now'))`
+    `INSERT INTO users (name, birthDate, email, passwordHash, createdAt)
+     VALUES (@name, @birthDate, @email, @passwordHash, datetime('now'))`
   );
 
   const info = insert.run(user);
   const select = database.prepare(
-    "SELECT id, name, age, email, passwordHash, createdAt FROM users WHERE id = ?"
+    "SELECT id, name, birthDate, email, passwordHash, createdAt FROM users WHERE id = ?"
   );
   return select.get(Number(info.lastInsertRowid)) as UserRecord;
 }

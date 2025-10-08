@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createUser, getUserByEmail } from "@/lib/db";
+import { calculateAgeFromBirthDate, normalizeISODateOnly } from "@/lib/date";
 import {
   DEFAULT_EXPIRATION,
   SESSION_COOKIE_NAME,
@@ -12,14 +13,54 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
 
   const name = body?.name?.trim();
-  const age = Number.parseInt(body?.age, 10);
+  const birthDateInput = body?.birthDate;
   const email = body?.email?.toLowerCase().trim();
   const password = body?.password;
 
-  if (!name || Number.isNaN(age) || age < 18 || !email || !password || password.length < 8) {
+  if (!password) {
+    return NextResponse.json(
+      {
+        message: "Informe uma senha válida.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (password.length < 8) {
+    return NextResponse.json(
+      {
+        message: "A senha deve ter ao menos 8 caracteres.",
+      },
+      { status: 400 }
+    );
+  }
+
+  if (!name || !birthDateInput || !email) {
     return NextResponse.json(
       {
         message: "Dados inválidos. Verifique as informações enviadas.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const normalizedBirthDate = normalizeISODateOnly(birthDateInput);
+
+  if (!normalizedBirthDate) {
+    return NextResponse.json(
+      {
+        message: "Informe uma data de nascimento válida.",
+      },
+      { status: 400 }
+    );
+  }
+
+  const age = calculateAgeFromBirthDate(normalizedBirthDate);
+
+  if (age === null || age < 18) {
+    return NextResponse.json(
+      {
+        message: "Usuários precisam ter ao menos 18 anos.",
       },
       { status: 400 }
     );
@@ -41,10 +82,12 @@ export async function POST(request: NextRequest) {
   try {
     const user = createUser({
       name,
-      age,
+      birthDate: normalizedBirthDate,
       email,
       passwordHash,
     });
+
+    const userAge = calculateAgeFromBirthDate(user.birthDate);
 
     const token = await createSessionToken({
       sub: String(user.id),
@@ -57,8 +100,9 @@ export async function POST(request: NextRequest) {
         user: {
           id: user.id,
           name: user.name,
-          age: user.age,
           email: user.email,
+          birthDate: user.birthDate,
+          age: userAge,
           createdAt: user.createdAt,
         },
       },
