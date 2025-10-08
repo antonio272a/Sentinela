@@ -1,32 +1,60 @@
 import nodemailer from "nodemailer";
 import { getEnv, getRequiredEnv } from "./env";
+import {
+  getOutlookSmtpAccessToken,
+  isOutlookOAuthConfigured,
+} from "./outlook-oauth";
 
-let cachedTransporter: nodemailer.Transporter | null = null;
-let cachedSender: string | null = null;
+type AuthStrategy = "password" | "oauth2";
 
-function resolveTransporter() {
-  if (cachedTransporter && cachedSender) {
-    return { transporter: cachedTransporter, sender: cachedSender };
-  }
+type CachedTransporter = {
+  transporter: nodemailer.Transporter;
+  sender: string;
+  strategy: AuthStrategy;
+};
 
+let cachedTransporterPromise: Promise<CachedTransporter> | null = null;
+
+async function createTransporter(): Promise<CachedTransporter> {
   const outlookEmail = getRequiredEnv("OUTLOOK_EMAIL");
-  const outlookPassword = getRequiredEnv("OUTLOOK_PASSWORD");
+  const outlookPassword = getEnv("OUTLOOK_PASSWORD");
   const outlookHost = getEnv("OUTLOOK_SMTP_HOST") ?? "smtp.office365.com";
   const outlookPort = Number.parseInt(getEnv("OUTLOOK_SMTP_PORT") ?? "587", 10);
 
-  cachedTransporter = nodemailer.createTransport({
+  const usePasswordAuth = Boolean(outlookPassword);
+  const useOAuth = !usePasswordAuth && isOutlookOAuthConfigured();
+
+  if (!usePasswordAuth && !useOAuth) {
+    throw new Error(
+      "Configure as variáveis de ambiente do Outlook: defina OUTLOOK_PASSWORD ou as variáveis de OAuth2 (OUTLOOK_CLIENT_ID, OUTLOOK_CLIENT_SECRET e OUTLOOK_TENANT_ID).",
+    );
+  }
+
+  const transporter = nodemailer.createTransport({
     host: outlookHost,
     port: outlookPort,
     secure: outlookPort === 465,
-    auth: {
-      user: outlookEmail,
-      pass: outlookPassword,
-    },
+    auth: usePasswordAuth
+      ? {
+          user: outlookEmail,
+          pass: outlookPassword!,
+        }
+      : undefined,
   });
 
-  cachedSender = outlookEmail;
+  return {
+    transporter,
+    sender: outlookEmail,
+    strategy: usePasswordAuth ? "password" : "oauth2",
+  };
+}
 
-  return { transporter: cachedTransporter, sender: cachedSender };
+async function resolveTransporter(): Promise<CachedTransporter> {
+  if (!cachedTransporterPromise) {
+    cachedTransporterPromise = createTransporter();
+  }
+
+  return cachedTransporterPromise;
 }
 
 export async function sendVerificationCodeEmail(params: {
@@ -34,10 +62,10 @@ export async function sendVerificationCodeEmail(params: {
   name: string;
   code: string;
 }): Promise<void> {
-  const { transporter, sender } = resolveTransporter();
+  const { transporter, sender, strategy } = await resolveTransporter();
   const { to, name, code } = params;
 
-  await transporter.sendMail({
+  const mailOptions: nodemailer.SendMailOptions = {
     from: {
       name: "Sentinela",
       address: sender,
@@ -58,5 +86,16 @@ export async function sendVerificationCodeEmail(params: {
         <p style="margin-top: 32px; font-size: 12px; color: #64748b;">Este código expira em alguns minutos.</p>
       </div>
     `,
-  });
+  };
+
+  if (strategy === "oauth2") {
+    const accessToken = await getOutlookSmtpAccessToken();
+    mailOptions.auth = {
+      type: "OAuth2",
+      user: sender,
+      accessToken,
+    };
+  }
+
+  await transporter.sendMail(mailOptions);
 }
