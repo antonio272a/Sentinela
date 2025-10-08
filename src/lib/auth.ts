@@ -29,7 +29,7 @@ export async function createSessionToken(payload: SessionPayload): Promise<strin
     .setProtectedHeader({ alg: "HS256", typ: "JWT" })
     .setSubject(payload.sub)
     .setIssuedAt()
-    .setExpirationTime(DEFAULT_EXPIRATION)
+    .setExpirationTime(`${DEFAULT_EXPIRATION}s`)
     .sign(secretKey);
 }
 
