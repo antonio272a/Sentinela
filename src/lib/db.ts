@@ -2,12 +2,17 @@ import Database from "better-sqlite3";
 import fs from "node:fs";
 import path from "node:path";
 
+export type UserStatus = "pending_verification" | "active";
+
 export interface UserRecord {
   id: number;
   name: string;
   birthDate: string;
   email: string;
   passwordHash: string;
+  status: UserStatus;
+  verificationCode: string | null;
+  verificationCodeSentAt: string | null;
   createdAt: string;
 }
 
@@ -38,6 +43,9 @@ database.exec(`
     birthDate TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     passwordHash TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending_verification',
+    verificationCode TEXT,
+    verificationCodeSentAt TEXT,
     createdAt TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -55,9 +63,25 @@ database.exec(`
     ON check_ins(userId, datetime(date));
 `);
 
+const userColumns = database.prepare("PRAGMA table_info(users)").all() as { name: string }[];
+const userColumnNames = new Set(userColumns.map((column) => column.name));
+
+if (!userColumnNames.has("status")) {
+  database.exec("ALTER TABLE users ADD COLUMN status TEXT NOT NULL DEFAULT 'active'");
+}
+
+if (!userColumnNames.has("verificationCode")) {
+  database.exec("ALTER TABLE users ADD COLUMN verificationCode TEXT");
+}
+
+if (!userColumnNames.has("verificationCodeSentAt")) {
+  database.exec("ALTER TABLE users ADD COLUMN verificationCodeSentAt TEXT");
+}
+
 export function getUserByEmail(email: string): UserRecord | undefined {
   const statement = database.prepare(
-    "SELECT id, name, birthDate, email, passwordHash, createdAt FROM users WHERE email = ?"
+    `SELECT id, name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt
+       FROM users WHERE email = ?`
   );
   return statement.get(email) as UserRecord | undefined;
 }
@@ -67,17 +91,91 @@ export function createUser(user: {
   birthDate: string;
   email: string;
   passwordHash: string;
+  status: UserStatus;
+  verificationCode: string | null;
+  verificationCodeSentAt: string | null;
 }): UserRecord {
   const insert = database.prepare(
-    `INSERT INTO users (name, birthDate, email, passwordHash, createdAt)
-     VALUES (@name, @birthDate, @email, @passwordHash, datetime('now'))`
+    `INSERT INTO users (name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt)
+     VALUES (@name, @birthDate, @email, @passwordHash, @status, @verificationCode, @verificationCodeSentAt, datetime('now'))`
   );
 
   const info = insert.run(user);
   const select = database.prepare(
-    "SELECT id, name, birthDate, email, passwordHash, createdAt FROM users WHERE id = ?"
+    `SELECT id, name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt
+       FROM users WHERE id = ?`
   );
   return select.get(Number(info.lastInsertRowid)) as UserRecord;
+}
+
+export function updatePendingUser(payload: {
+  id: number;
+  name: string;
+  birthDate: string;
+  passwordHash: string;
+  verificationCode: string;
+  verificationCodeSentAt: string;
+}): UserRecord {
+  const update = database.prepare(
+    `UPDATE users
+        SET name = @name,
+            birthDate = @birthDate,
+            passwordHash = @passwordHash,
+            status = 'pending_verification',
+            verificationCode = @verificationCode,
+            verificationCodeSentAt = @verificationCodeSentAt
+      WHERE id = @id`
+  );
+
+  update.run(payload);
+
+  const select = database.prepare(
+    `SELECT id, name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt
+       FROM users WHERE id = ?`
+  );
+
+  return select.get(payload.id) as UserRecord;
+}
+
+export function refreshVerificationCode(payload: {
+  id: number;
+  verificationCode: string;
+  verificationCodeSentAt: string;
+}): UserRecord {
+  const update = database.prepare(
+    `UPDATE users
+        SET verificationCode = @verificationCode,
+            verificationCodeSentAt = @verificationCodeSentAt
+      WHERE id = @id`
+  );
+
+  update.run(payload);
+
+  const select = database.prepare(
+    `SELECT id, name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt
+       FROM users WHERE id = ?`
+  );
+
+  return select.get(payload.id) as UserRecord;
+}
+
+export function markUserAsVerified(userId: number): UserRecord {
+  const update = database.prepare(
+    `UPDATE users
+        SET status = 'active',
+            verificationCode = NULL,
+            verificationCodeSentAt = NULL
+      WHERE id = ?`
+  );
+
+  update.run(userId);
+
+  const select = database.prepare(
+    `SELECT id, name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt
+       FROM users WHERE id = ?`
+  );
+
+  return select.get(userId) as UserRecord;
 }
 
 function toNumberId(userId: string | number): number {

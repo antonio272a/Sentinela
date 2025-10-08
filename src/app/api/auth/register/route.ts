@@ -1,13 +1,14 @@
 import bcrypt from "bcrypt";
 import { NextRequest, NextResponse } from "next/server";
 
-import { createUser, getUserByEmail } from "@/lib/db";
+import { createUser, getUserByEmail, updatePendingUser } from "@/lib/db";
 import { calculateAgeFromBirthDate, normalizeISODateOnly } from "@/lib/date";
+import { sendVerificationCodeEmail } from "@/lib/email";
 import {
-  DEFAULT_EXPIRATION,
-  SESSION_COOKIE_NAME,
-  createSessionToken,
-} from "@/lib/auth";
+  VERIFICATION_RESEND_INTERVAL_MS,
+  calculateResendAvailableAt,
+  generateVerificationCode,
+} from "@/lib/verification";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
@@ -68,62 +69,77 @@ export async function POST(request: NextRequest) {
 
   const existingUser = getUserByEmail(email);
 
-  if (existingUser) {
-    return NextResponse.json(
-      {
-        message: "E-mail já cadastrado. Utilize outro endereço ou faça login.",
-      },
-      { status: 409 }
-    );
-  }
+  const verificationCode = generateVerificationCode();
+  const sentAt = new Date().toISOString();
+
+  const verificationDetails = {
+    email,
+    sentAt,
+    resendAvailableAt: calculateResendAvailableAt(sentAt),
+    resendIntervalMs: VERIFICATION_RESEND_INTERVAL_MS,
+  };
 
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
+    if (existingUser) {
+      if (existingUser.status !== "pending_verification") {
+        return NextResponse.json(
+          {
+            message: "E-mail já cadastrado. Utilize outro endereço ou faça login.",
+          },
+          { status: 409 }
+        );
+      }
+
+      const updatedUser = updatePendingUser({
+        id: existingUser.id,
+        name,
+        birthDate: normalizedBirthDate,
+        passwordHash,
+        verificationCode,
+        verificationCodeSentAt: sentAt,
+      });
+
+      await sendVerificationCodeEmail({
+        to: updatedUser.email,
+        name: updatedUser.name,
+        code: verificationCode,
+      });
+
+      return NextResponse.json({
+        message: "Atualizamos seus dados e reenviamos um novo código de verificação.",
+        verification: verificationDetails,
+      });
+    }
+
     const user = createUser({
       name,
       birthDate: normalizedBirthDate,
       email,
       passwordHash,
+      status: "pending_verification",
+      verificationCode,
+      verificationCodeSentAt: sentAt,
     });
 
-    const userAge = calculateAgeFromBirthDate(user.birthDate);
-
-    const token = await createSessionToken({
-      sub: String(user.id),
-      email: user.email,
+    await sendVerificationCodeEmail({
+      to: user.email,
       name: user.name,
+      code: verificationCode,
     });
 
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          birthDate: user.birthDate,
-          age: userAge,
-          createdAt: user.createdAt,
-        },
+        message: "Enviamos um código de verificação para o seu e-mail. Informe-o para finalizar o cadastro.",
+        verification: verificationDetails,
       },
       { status: 201 }
     );
-
-    response.cookies.set({
-      name: SESSION_COOKIE_NAME,
-      value: token,
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: DEFAULT_EXPIRATION,
-    });
-
-    return response;
   } catch (error) {
     return NextResponse.json(
       {
-        message: "Não foi possível criar a conta no momento.",
+        message: "Não foi possível enviar o código de verificação. Tente novamente em instantes.",
       },
       { status: 500 }
     );
