@@ -1,107 +1,60 @@
 import Database from "better-sqlite3";
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
-export type CheckInRecord = {
+export interface UserRecord {
   id: number;
-  userId: string;
-  date: string;
-  moodScore: number;
-  stressScore: number;
-  notes: string | null;
-};
-
-const globalForDb = globalThis as unknown as {
-  _sentinelaDb?: Database.Database;
-};
-
-function createDatabaseInstance() {
-  const databasePath =
-    process.env.DATABASE_PATH ?? path.join(process.cwd(), "data", "sentinela.db");
-
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-
-  const instance = new Database(databasePath);
-  instance.pragma("journal_mode = WAL");
-  instance
-    .prepare(`
-      CREATE TABLE IF NOT EXISTS check_ins (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId TEXT NOT NULL,
-        date TEXT NOT NULL,
-        moodScore INTEGER NOT NULL,
-        stressScore INTEGER NOT NULL,
-        notes TEXT
-      )
-    `)
-    .run();
-
-  return instance;
+  name: string;
+  age: number;
+  email: string;
+  passwordHash: string;
+  createdAt: string;
 }
 
-export const db = globalForDb._sentinelaDb ?? createDatabaseInstance();
+const dataDirectory = path.join(process.cwd(), "data");
+const databasePath = path.join(dataDirectory, "sentinela.db");
 
-if (!globalForDb._sentinelaDb) {
-  globalForDb._sentinelaDb = db;
+if (!fs.existsSync(dataDirectory)) {
+  fs.mkdirSync(dataDirectory, { recursive: true });
 }
 
-export function insertCheckIn(entry: Omit<CheckInRecord, "id">) {
-  const stmt = db.prepare<
-    [string, string, number, number, string | null]
-  >(
-    `
-    INSERT INTO check_ins (userId, date, moodScore, stressScore, notes)
-    VALUES (?, ?, ?, ?, ?)
-  `
+const database = new Database(databasePath);
+database.pragma("journal_mode = WAL");
+
+database.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    age INTEGER NOT NULL CHECK(age >= 0),
+    email TEXT NOT NULL UNIQUE,
+    passwordHash TEXT NOT NULL,
+    createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`);
+
+export function getUserByEmail(email: string): UserRecord | undefined {
+  const statement = database.prepare(
+    "SELECT id, name, age, email, passwordHash, createdAt FROM users WHERE email = ?"
+  );
+  return statement.get(email) as UserRecord | undefined;
+}
+
+export function createUser(user: {
+  name: string;
+  age: number;
+  email: string;
+  passwordHash: string;
+}): UserRecord {
+  const insert = database.prepare(
+    `INSERT INTO users (name, age, email, passwordHash, createdAt)
+     VALUES (@name, @age, @email, @passwordHash, datetime('now'))`
   );
 
-  const result = stmt.run(
-    entry.userId,
-    entry.date,
-    entry.moodScore,
-    entry.stressScore,
-    entry.notes ?? null
+  const info = insert.run(user);
+  const select = database.prepare(
+    "SELECT id, name, age, email, passwordHash, createdAt FROM users WHERE id = ?"
   );
-
-  return { ...entry, id: Number(result.lastInsertRowid) } satisfies CheckInRecord;
+  return select.get(Number(info.lastInsertRowid)) as UserRecord;
 }
 
-export function listCheckInsByUser(userId: string) {
-  return db
-    .prepare<[string]>(
-      `
-      SELECT id, userId, date, moodScore, stressScore, notes
-      FROM check_ins
-      WHERE userId = ?
-      ORDER BY date DESC, id DESC
-    `
-    )
-    .all(userId) as CheckInRecord[];
-}
-
-export function listCheckInsByUserSince(userId: string, isoDate: string) {
-  return db
-    .prepare<[string, string]>(
-      `
-      SELECT id, userId, date, moodScore, stressScore, notes
-      FROM check_ins
-      WHERE userId = ? AND date >= ?
-      ORDER BY date DESC, id DESC
-    `
-    )
-    .all(userId, isoDate) as CheckInRecord[];
-}
-
-export function findLatestCheckIn(userId: string) {
-  return db
-    .prepare<[string]>(
-      `
-      SELECT id, userId, date, moodScore, stressScore, notes
-      FROM check_ins
-      WHERE userId = ?
-      ORDER BY date DESC, id DESC
-      LIMIT 1
-    `
-    )
-    .get(userId) as CheckInRecord | undefined;
-}
+export default database;

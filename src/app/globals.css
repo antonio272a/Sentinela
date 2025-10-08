@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #020817;
-  --foreground: #f8fafc;
+  --background: #020617;
+  --foreground: #e2e8f0;
+  --sentinel-gradient-start: #0f172a;
+  --sentinel-gradient-middle: #1e293b;
+  --sentinel-gradient-end: #0b1120;
+  --sentinel-primary: #38bdf8;
+  --sentinel-secondary: #8b5cf6;
+  --sentinel-muted: rgba(148, 163, 184, 0.6);
   --brand-navy: #0f172a;
   --brand-navy-light: #1e3a8a;
   --brand-gold: #fbbf24;
@@ -33,6 +39,45 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #020617;
+    --foreground: #f1f5f9;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+.bg-sentinel-gradient {
+  background: radial-gradient(
+      120% 120% at 80% 0%,
+      rgba(59, 130, 246, 0.15) 0%,
+      rgba(59, 130, 246, 0) 60%
+    ),
+    radial-gradient(
+      100% 100% at 20% 100%,
+      rgba(168, 85, 247, 0.18) 0%,
+      rgba(168, 85, 247, 0) 65%
+    ),
+    linear-gradient(
+      145deg,
+      var(--sentinel-gradient-start) 0%,
+      var(--sentinel-gradient-middle) 40%,
+      var(--sentinel-gradient-end) 100%
+    );
+}
+
+.bg-sentinel-canvas {
+  background-color: rgba(2, 6, 23, 0.86);
+}
+
+.text-sentinel-foreground {
+  color: var(--foreground);
 body {
   margin: 0;
   min-height: 100vh;
