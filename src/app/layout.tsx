@@ -14,10 +14,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const title = "Sentinela – Monitoramento Inteligente de Bem-estar";
+const description =
+  "Plataforma que antecipa riscos com prevenção inteligente, aciona respostas imediatas e opera em conformidade com a LGPD.";
+
 export const metadata: Metadata = {
-  title: "Sentinela | Monitoramento inteligente",
-  description:
-    "Acompanhe dados críticos com visualizações modernas e componentes reutilizáveis.",
+  title,
+  description,
+  themeColor: "#0B1F3A",
+  icons: {
+    icon: "/file.svg",
+    apple: "/file.svg",
+  },
+  openGraph: {
+    title,
+    description,
+    type: "website",
+    siteName: "Sentinela",
+    locale: "pt_BR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({
