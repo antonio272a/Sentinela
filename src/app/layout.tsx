@@ -14,23 +14,34 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const description = "Plataforma de monitoramento inteligente Sentinela.";
+const defaultTitle = "Sentinela – Monitoramento Inteligente de Bem-estar";
+const description =
+  "Check-ins diários e analytics preventivos para mapear estresse e orientar ações rápidas com total conformidade.";
 
 export const metadata: Metadata = {
   title: {
-    default: "Sentinela",
+    default: defaultTitle,
     template: "%s | Sentinela",
   },
   description,
   metadataBase: new URL("https://sentinela.example.com"),
   openGraph: {
-    title: "Sentinela",
+    title: defaultTitle,
     description,
     url: "https://sentinela.example.com",
     siteName: "Sentinela",
     locale: "pt_BR",
     type: "website",
   },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description,
+  },
+  icons: {
+    icon: "/favicon.ico",
+  },
+  themeColor: "#07132b",
 };
 
 export default function RootLayout({
@@ -40,9 +51,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-sentinel-canvas text-sentinel-foreground`}
-      >
+      <body className={`${poppins.variable} ${geistMono.variable} antialiased bg-sentinel-canvas text-sentinel-foreground`}>
         <div className="min-h-screen bg-sentinel-gradient">
           {children}
         </div>
