@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const poppins = Poppins({
+  variable: "--font-poppins",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -12,10 +14,30 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const title = "Sentinela – Monitoramento Inteligente de Bem-estar";
+const description =
+  "Plataforma que antecipa riscos com prevenção inteligente, aciona respostas imediatas e opera em conformidade com a LGPD.";
+
 export const metadata: Metadata = {
-  title: "Sentinela",
-  description:
-    "Monitoramento diário de bem-estar emocional para líderes de segurança.",
+  title,
+  description,
+  themeColor: "#0B1F3A",
+  icons: {
+    icon: "/file.svg",
+    apple: "/file.svg",
+  },
+  openGraph: {
+    title,
+    description,
+    type: "website",
+    siteName: "Sentinela",
+    locale: "pt_BR",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({
