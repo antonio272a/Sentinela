@@ -76,7 +76,7 @@ export default async function DailyCheckInPage({
         <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Rotina</p>
         <h1 className="text-3xl font-semibold text-white">Radar emocional diário</h1>
         <p className="text-sm text-slate-300">
-          Reserve dois minutos para perceber como você chega hoje. Essas pistas orientam ajustes de escala, pausas táticas e rituais que mantêm a tropa centrada.
+          Reserve dois minutos para perceber como você chega hoje. Essas pistas orientam ajustes de escala, pausas táticas e rituais que mantêm a sua saúde.
         </p>
       </header>
 

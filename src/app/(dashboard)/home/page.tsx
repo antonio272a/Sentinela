@@ -21,7 +21,7 @@ export default async function HomePage({
   return (
     <div className="space-y-8">
       {showCheckInToast && (
-        <CheckInSuccessToast message="Obrigado por manter a rotina. Continue registrando diariamente para fortalecer a tropa." />
+        <CheckInSuccessToast message="Obrigado por manter a rotina. Continue registrando diariamente!" />
       )}
       <section className="rounded-3xl border border-slate-800/70 bg-gradient-to-br from-slate-900/70 to-slate-950/90 p-8 shadow-xl shadow-blue-900/30">
         <h1 className="text-2xl font-semibold text-white">Bem-vindo de volta, {user.name.split(" ")[0]}!</h1>
