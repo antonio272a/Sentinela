@@ -31,16 +31,13 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Configuração do envio de e-mails
 
-O projeto utiliza o Outlook SMTP para envio de e-mails transacionais. Preencha as variáveis
-de ambiente no arquivo `.env` conforme o cenário da sua conta:
+O projeto utiliza o SMTP transacional da [Brevo](https://www.brevo.com/) para envio de e-mails.
+Preencha as variáveis de ambiente no arquivo `.env` com as credenciais do serviço:
 
-- **Autenticação básica habilitada**: informe `OUTLOOK_EMAIL` e `OUTLOOK_PASSWORD` (senha de
-  aplicativo). Esse modo só funciona se o recurso estiver disponível na conta.
-- **Autenticação básica desabilitada (cenário padrão)**: cadastre um aplicativo no Azure AD,
-  conceda a permissão `SMTP.Send` (ou `Mail.Send`) e configure `OUTLOOK_TENANT_ID`,
-  `OUTLOOK_CLIENT_ID` e `OUTLOOK_CLIENT_SECRET`. Opcionalmente ajuste
-  `OUTLOOK_OAUTH_SCOPE` caso utilize um escopo diferente de
-  `https://outlook.office365.com/.default`.
+- `BREVO_SMTP_USER`: o remetente autorizado na Brevo.
+- `BREVO_SMTP_KEY`: a chave SMTP (API Key) gerada na Brevo.
+- Opcionalmente, ajuste `BREVO_SMTP_HOST` e `BREVO_SMTP_PORT` caso utilize valores
+  diferentes do padrão (`smtp-relay.brevo.com:587`).
 
 ## Deploy on Vercel
 
