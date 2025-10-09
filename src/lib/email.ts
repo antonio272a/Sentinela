@@ -69,5 +69,10 @@ export async function sendVerificationCodeEmail(params: {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error("Erro ao enviar e-mail de verificação:", error);
+    throw error;
+  }
 }
