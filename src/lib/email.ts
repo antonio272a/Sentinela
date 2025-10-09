@@ -1,5 +1,5 @@
 import nodemailer from "nodemailer";
-import { getEnv, getRequiredEnv } from "./env";
+import { getRequiredEnv } from "./env";
 
 type CachedTransporter = {
   transporter: nodemailer.Transporter;
@@ -9,18 +9,14 @@ type CachedTransporter = {
 let cachedTransporterPromise: Promise<CachedTransporter> | null = null;
 
 async function createTransporter(): Promise<CachedTransporter> {
-  const senderEmail = getRequiredEnv("BREVO_SMTP_USER");
-  const smtpKey = getRequiredEnv("BREVO_SMTP_KEY");
-  const smtpHost = getEnv("BREVO_SMTP_HOST") ?? "smtp-relay.brevo.com";
-  const smtpPort = Number.parseInt(getEnv("BREVO_SMTP_PORT") ?? "587", 10);
+  const senderEmail = getRequiredEnv("GMAIL_USER");
+  const appPassword = getRequiredEnv("GMAIL_APP_PASSWORD");
 
   const transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: smtpPort,
-    secure: smtpPort === 465,
+    service: "gmail",
     auth: {
       user: senderEmail,
-      pass: smtpKey,
+      pass: appPassword,
     },
   });
 
