@@ -1,19 +1,28 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getDashboardSummary } from "@/lib/checkIns";
+import { CheckInSuccessToast } from "@/components/check-in-success-toast";
 
 const formatter = new Intl.DateTimeFormat("pt-BR", {
   day: "2-digit",
   month: "short",
 });
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { checkInSuccess?: string };
+}) {
   const user = await requireUser();
   const summary = getDashboardSummary(user.id);
   const latest = summary.latest;
+  const showCheckInToast = searchParams?.checkInSuccess === "1";
 
   return (
     <div className="space-y-8">
+      {showCheckInToast && (
+        <CheckInSuccessToast message="Obrigado por manter a rotina. Continue registrando diariamente para fortalecer a tropa." />
+      )}
       <section className="rounded-3xl border border-slate-800/70 bg-gradient-to-br from-slate-900/70 to-slate-950/90 p-8 shadow-xl shadow-blue-900/30">
         <h1 className="text-2xl font-semibold text-white">Bem-vindo de volta, {user.name.split(" ")[0]}!</h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-300">
@@ -54,7 +63,7 @@ export default async function HomePage() {
           </p>
           <Link
             href="/daily-check-in"
-            className="mt-6 inline-flex items-center justify-center rounded-2xl bg-gradient-to-r from-blue-900 to-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/30 transition hover:shadow-amber-500/50"
+            className="mt-6 inline-flex cursor-pointer items-center justify-center rounded-2xl bg-gradient-to-r from-blue-900 to-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/30 transition hover:shadow-amber-500/50"
           >
             Fazer check-in de hoje
           </Link>
