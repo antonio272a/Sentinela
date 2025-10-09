@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Logo } from "@/components/Logo";
 
 const highlights = [
   "Monitoramento contínuo",
@@ -15,6 +16,12 @@ export function AuthPageShell({ children }: { children: ReactNode }) {
       <div className="pointer-events-none absolute -bottom-24 right-[-120px] hidden h-[420px] w-[420px] rounded-full bg-[#6366f1]/30 blur-[180px] lg:block" />
       <div className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col justify-center px-6 py-12 lg:flex-row lg:items-center lg:gap-16">
         <aside className="mb-12 max-w-xl lg:mb-0 lg:w-[55%]">
+          <Logo
+            size="lg"
+            orientation="vertical"
+            subtitle="A plataforma inteligente para a gestão da saúde mental e conformidade corporativa"
+            className="mb-8 max-w-sm"
+          />
           <Link href="/" className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-medium backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             Sentinela em destaque
