@@ -5,7 +5,6 @@ import { Logo } from "@/components/Logo";
 const highlights = [
   "Monitoramento contínuo",
   "Alertas proativos",
-  "Insights orientados por IA",
 ];
 
 export function AuthPageShell({ children }: { children: ReactNode }) {
