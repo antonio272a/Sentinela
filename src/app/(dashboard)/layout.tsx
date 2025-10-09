@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { DashboardNavLink } from "@/components/dashboard/NavLink";
+import { LogoutButton } from "@/components/dashboard/LogoutButton";
 import { ReactNode } from "react";
 
 const navigation = [
@@ -29,13 +30,16 @@ export default async function DashboardLayout({
               <p className="text-xs text-slate-300">Olá, {user.name}</p>
             </div>
           </Link>
-          <nav className="flex items-center gap-3">
-            {navigation.map((item) => (
-              <DashboardNavLink key={item.href} href={item.href}>
-                {item.label}
-              </DashboardNavLink>
-            ))}
-          </nav>
+          <div className="flex items-center gap-4">
+            <nav className="flex items-center gap-3">
+              {navigation.map((item) => (
+                <DashboardNavLink key={item.href} href={item.href}>
+                  {item.label}
+                </DashboardNavLink>
+              ))}
+            </nav>
+            <LogoutButton />
+          </div>
         </div>
       </header>
       <main className="mx-auto flex w-full max-w-6xl flex-1 px-6 py-10">
