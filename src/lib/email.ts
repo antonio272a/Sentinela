@@ -9,14 +9,17 @@ type CachedTransporter = {
 let cachedTransporterPromise: Promise<CachedTransporter> | null = null;
 
 async function createTransporter(): Promise<CachedTransporter> {
-  const senderEmail = getRequiredEnv("GMAIL_USER");
-  const appPassword = getRequiredEnv("GMAIL_APP_PASSWORD");
+  const smtpUser = getRequiredEnv("MAILERSEND_SMTP_USERNAME");
+  const smtpPassword = getRequiredEnv("MAILERSEND_SMTP_PASSWORD");
+  const senderEmail = getRequiredEnv("MAILERSEND_FROM_EMAIL");
 
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.mailersend.net",
+    port: 587,
+    secure: false,
     auth: {
-      user: senderEmail,
-      pass: appPassword,
+      user: smtpUser,
+      pass: smtpPassword,
     },
   });
 
