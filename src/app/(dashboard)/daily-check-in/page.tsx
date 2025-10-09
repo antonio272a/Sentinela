@@ -54,13 +54,13 @@ async function submitCheckIn(formData: FormData) {
   }
 
   revalidatePath("/home");
-  redirect("/daily-check-in?success=1");
+  redirect("/home?checkInSuccess=1");
 }
 
 export default async function DailyCheckInPage({
   searchParams,
 }: {
-  searchParams: { success?: string; error?: string };
+  searchParams: { error?: string };
 }) {
   const user = await requireUser();
   const todaysCheckIn = getTodayCheckIn(user.id);
@@ -68,7 +68,6 @@ export default async function DailyCheckInPage({
   const defaultMood = todaysCheckIn?.moodScore ?? 3;
   const defaultStress = todaysCheckIn?.stressScore ?? 5;
   const defaultEnergy = parsedNotes.energyLevel ?? "Estável";
-  const showSuccess = searchParams?.success === "1";
   const showError = searchParams?.error === "1";
 
   return (
@@ -81,17 +80,12 @@ export default async function DailyCheckInPage({
         </p>
       </header>
 
-      {showSuccess && (
-        <div className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-          Check-in registrado. Obrigado por manter a rotina.
-        </div>
-      )}
       {showError && (
         <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           Não conseguimos salvar seu check-in. Tente novamente em instantes.
         </div>
       )}
-      {todaysCheckIn && !showSuccess && !showError && (
+      {todaysCheckIn && !showError && (
         <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
           Você já registrou seu check-in hoje. Ajuste os dados abaixo caso queira atualizar o relato.
         </div>
@@ -200,7 +194,7 @@ export default async function DailyCheckInPage({
 
         <button
           type="submit"
-          className="w-full rounded-2xl bg-gradient-to-r from-blue-900 to-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/30 transition hover:shadow-amber-500/50"
+          className="w-full cursor-pointer rounded-2xl bg-gradient-to-r from-blue-900 to-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/30 transition hover:shadow-amber-500/50"
         >
           {todaysCheckIn ? "Atualizar check-in" : "Enviar check-in"}
         </button>
