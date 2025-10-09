@@ -61,10 +61,27 @@ database.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_check_ins_user_date
     ON check_ins(userId, datetime(date));
-
-  CREATE UNIQUE INDEX IF NOT EXISTS uniq_check_ins_user_day
-    ON check_ins(userId, date(date));
 `);
+
+const removeDuplicateDailyCheckIns = database.prepare(`
+  DELETE FROM check_ins
+   WHERE id NOT IN (
+     SELECT MAX(id)
+       FROM check_ins
+      GROUP BY userId, date(date)
+   );
+`);
+
+const ensureDailyCheckInUniqueness = database.transaction(() => {
+  removeDuplicateDailyCheckIns.run();
+
+  database.exec(`
+    CREATE UNIQUE INDEX IF NOT EXISTS uniq_check_ins_user_day
+      ON check_ins(userId, date(date));
+  `);
+});
+
+ensureDailyCheckInUniqueness();
 
 const userColumns = database.prepare("PRAGMA table_info(users)").all() as { name: string }[];
 const userColumnNames = new Set(userColumns.map((column) => column.name));
