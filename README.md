@@ -31,13 +31,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Configuração do envio de e-mails
 
-O projeto utiliza o SMTP transacional da [Brevo](https://www.brevo.com/) para envio de e-mails.
+O projeto utiliza o serviço SMTP do Gmail para envio de e-mails.
 Preencha as variáveis de ambiente no arquivo `.env` com as credenciais do serviço:
 
-- `BREVO_SMTP_USER`: o remetente autorizado na Brevo.
-- `BREVO_SMTP_KEY`: a chave SMTP (API Key) gerada na Brevo.
-- Opcionalmente, ajuste `BREVO_SMTP_HOST` e `BREVO_SMTP_PORT` caso utilize valores
-  diferentes do padrão (`smtp-relay.brevo.com:587`).
+- `GMAIL_USER`: o endereço de e-mail que enviará as mensagens.
+- `GMAIL_APP_PASSWORD`: a senha de app gerada no Gmail para autenticação SMTP.
+
+> 💡 Certifique-se de habilitar a verificação em duas etapas na conta do Gmail
+> utilizada e gerar uma senha de app exclusiva para o envio dos e-mails.
 
 ## Deploy on Vercel
 
