@@ -31,16 +31,15 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Configuração do envio de e-mails
 
-O projeto utiliza o serviço SMTP da MailerSend para envio de e-mails.
-Preencha as variáveis de ambiente no arquivo `.env` com as credenciais do serviço:
+O projeto utiliza o SMTP do Gmail com uma senha de aplicativo para o envio de e-mails.
+Preencha as variáveis de ambiente no arquivo `.env` com as credenciais da conta:
 
-- `MAILERSEND_SMTP_USERNAME`: o usuário SMTP fornecido pela MailerSend.
-- `MAILERSEND_SMTP_PASSWORD`: a senha SMTP fornecida pela MailerSend.
-- `MAILERSEND_FROM_EMAIL`: o endereço de e-mail autorizado no domínio verificado que
-  será exibido como remetente.
+- `GMAIL_SMTP_USERNAME`: o endereço de e-mail da conta Gmail que enviará as mensagens.
+- `GMAIL_APP_PASSWORD`: a senha de aplicativo gerada nas configurações de segurança da conta.
+- `GMAIL_FROM_EMAIL`: o endereço que será exibido como remetente (geralmente o mesmo da conta).
 
-> 💡 Gere as credenciais SMTP diretamente no painel da MailerSend e mantenha-as em
-> segurança, pois elas concedem acesso ao envio de e-mails em sua conta.
+> 💡 Gere a senha de aplicativo acessando "Segurança" > "Senhas de app" na sua conta
+> Google. Anote-a em local seguro, pois ela concede acesso direto ao envio de e-mails.
 
 ## Deploy on Vercel
 
