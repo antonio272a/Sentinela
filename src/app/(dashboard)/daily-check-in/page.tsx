@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
+import { getTodayCheckIn } from "@/lib/checkIns";
 
 async function submitCheckIn(formData: FormData) {
   "use server";
@@ -61,7 +62,12 @@ export default async function DailyCheckInPage({
 }: {
   searchParams: { success?: string; error?: string };
 }) {
-  await requireUser();
+  const user = await requireUser();
+  const todaysCheckIn = getTodayCheckIn(user.id);
+  const parsedNotes = parseNotes(todaysCheckIn?.notes ?? null);
+  const defaultMood = todaysCheckIn?.moodScore ?? 3;
+  const defaultStress = todaysCheckIn?.stressScore ?? 5;
+  const defaultEnergy = parsedNotes.energyLevel ?? "Estável";
   const showSuccess = searchParams?.success === "1";
   const showError = searchParams?.error === "1";
 
@@ -85,6 +91,11 @@ export default async function DailyCheckInPage({
           Não conseguimos salvar seu check-in. Tente novamente em instantes.
         </div>
       )}
+      {todaysCheckIn && !showSuccess && !showError && (
+        <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+          Você já registrou seu check-in hoje. Ajuste os dados abaixo caso queira atualizar o relato.
+        </div>
+      )}
 
       <form action={submitCheckIn} className="space-y-8">
         <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
@@ -100,7 +111,7 @@ export default async function DailyCheckInPage({
                   type="radio"
                   name="moodScore"
                   value={value}
-                  defaultChecked={value === 3}
+                  defaultChecked={value === defaultMood}
                   className="accent-amber-400"
                   required
                 />
@@ -123,7 +134,7 @@ export default async function DailyCheckInPage({
                   type="radio"
                   name="energyLevel"
                   value={label}
-                  defaultChecked={label === "Estável"}
+                  defaultChecked={label === defaultEnergy}
                   className="accent-amber-400"
                   required
                 />
@@ -142,7 +153,7 @@ export default async function DailyCheckInPage({
               name="stressScore"
               min="1"
               max="10"
-              defaultValue="5"
+              defaultValue={defaultStress}
               className="w-full accent-amber-400"
             />
             <div className="mt-2 flex justify-between text-xs text-slate-400">
@@ -160,6 +171,7 @@ export default async function DailyCheckInPage({
               rows={3}
               className="mt-2 w-full rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
               placeholder="Ex.: Comunicação truncada, ocorrência noturna..."
+              defaultValue={parsedNotes.triggers ?? ""}
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -170,6 +182,7 @@ export default async function DailyCheckInPage({
                 name="highlight"
                 className="rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
                 placeholder="Treino bem-sucedido, reconhecimento..."
+                defaultValue={parsedNotes.highlight ?? ""}
               />
             </label>
             <label className="flex flex-col gap-2 text-sm text-slate-200">
@@ -179,6 +192,7 @@ export default async function DailyCheckInPage({
                 name="intention"
                 className="rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/40"
                 placeholder="Oferecer feedback, reforçar alinhamentos..."
+                defaultValue={parsedNotes.intention ?? ""}
               />
             </label>
           </div>
@@ -188,9 +202,54 @@ export default async function DailyCheckInPage({
           type="submit"
           className="w-full rounded-2xl bg-gradient-to-r from-blue-900 to-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/30 transition hover:shadow-amber-500/50"
         >
-          Enviar check-in
+          {todaysCheckIn ? "Atualizar check-in" : "Enviar check-in"}
         </button>
       </form>
     </div>
   );
+}
+
+function parseNotes(notes: string | null) {
+  const parsed: {
+    energyLevel: string | null;
+    triggers: string | null;
+    highlight: string | null;
+    intention: string | null;
+  } = {
+    energyLevel: null,
+    triggers: null,
+    highlight: null,
+    intention: null,
+  };
+
+  if (!notes) {
+    return parsed;
+  }
+
+  const segments = notes.split(" | ");
+  for (const segment of segments) {
+    const [rawKey, ...rest] = segment.split(":");
+    if (!rawKey || rest.length === 0) {
+      continue;
+    }
+
+    const key = rawKey.trim().toLowerCase();
+    const value = rest.join(":").trim();
+
+    if (!value) {
+      continue;
+    }
+
+    if (key.startsWith("energia")) {
+      parsed.energyLevel = value;
+    } else if (key.startsWith("gatilho")) {
+      parsed.triggers = value;
+    } else if (key.startsWith("ponto alto")) {
+      parsed.highlight = value;
+    } else if (key.startsWith("intenção")) {
+      parsed.intention = value;
+    }
+  }
+
+  return parsed;
 }

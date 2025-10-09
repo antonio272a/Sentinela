@@ -1,9 +1,11 @@
 import {
   CheckInRecord,
   findLatestCheckIn,
+  findCheckInByUserAndDateRange,
   insertCheckIn,
   listCheckInsByUser,
   listCheckInsByUserSince,
+  updateCheckIn as updateCheckInRecord,
 } from "./db";
 
 export type CheckInSummary = {
@@ -63,4 +65,59 @@ export function getDashboardSummary(userId: string): CheckInSummary {
   };
 }
 
-export { insertCheckIn, listCheckInsByUser };
+export function getTodayCheckIn(userId: string | number): CheckInRecord | undefined {
+  const bounds = getDayBounds(new Date());
+
+  return findCheckInByUserAndDateRange(
+    userId,
+    bounds.start.toISOString(),
+    bounds.end.toISOString()
+  );
+}
+
+export function saveCheckInForToday(
+  userId: string | number,
+  payload: {
+    moodScore: number;
+    stressScore: number;
+    notes: string | null;
+  }
+): { checkIn: CheckInRecord; wasUpdated: boolean } {
+  const bounds = getDayBounds(new Date());
+  const existing = findCheckInByUserAndDateRange(
+    userId,
+    bounds.start.toISOString(),
+    bounds.end.toISOString()
+  );
+
+  if (existing) {
+    const updated = updateCheckInRecord({
+      id: existing.id,
+      moodScore: payload.moodScore,
+      stressScore: payload.stressScore,
+      notes: payload.notes,
+    });
+
+    return { checkIn: updated, wasUpdated: true };
+  }
+
+  const entry = insertCheckIn({
+    userId,
+    date: new Date().toISOString(),
+    moodScore: payload.moodScore,
+    stressScore: payload.stressScore,
+    notes: payload.notes,
+  });
+
+  return { checkIn: entry, wasUpdated: false };
+}
+
+export { listCheckInsByUser };
+
+function getDayBounds(reference: Date) {
+  const start = new Date(Date.UTC(reference.getUTCFullYear(), reference.getUTCMonth(), reference.getUTCDate()));
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  return { start, end };
+}

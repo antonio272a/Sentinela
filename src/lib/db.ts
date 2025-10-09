@@ -61,6 +61,9 @@ database.exec(`
 
   CREATE INDEX IF NOT EXISTS idx_check_ins_user_date
     ON check_ins(userId, datetime(date));
+
+  CREATE UNIQUE INDEX IF NOT EXISTS uniq_check_ins_user_day
+    ON check_ins(userId, date(date));
 `);
 
 const userColumns = database.prepare("PRAGMA table_info(users)").all() as { name: string }[];
@@ -246,6 +249,50 @@ export function findLatestCheckIn(userId: string | number): CheckInRecord | unde
   );
 
   return statement.get(toNumberId(userId)) as CheckInRecord | undefined;
+}
+
+export function findCheckInByUserAndDateRange(
+  userId: string | number,
+  startISODate: string,
+  endISODate: string
+): CheckInRecord | undefined {
+  const statement = database.prepare(
+    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+       FROM check_ins
+       WHERE userId = ?
+         AND datetime(date) >= datetime(?)
+         AND datetime(date) < datetime(?)
+       ORDER BY datetime(date) DESC
+       LIMIT 1`
+  );
+
+  return statement.get(toNumberId(userId), startISODate, endISODate) as
+    | CheckInRecord
+    | undefined;
+}
+
+export function updateCheckIn(checkIn: {
+  id: number;
+  moodScore: number;
+  stressScore: number;
+  notes: string | null;
+}): CheckInRecord {
+  const update = database.prepare(
+    `UPDATE check_ins
+        SET moodScore = @moodScore,
+            stressScore = @stressScore,
+            notes = @notes
+      WHERE id = @id`
+  );
+
+  update.run(checkIn);
+
+  const select = database.prepare(
+    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+       FROM check_ins WHERE id = ?`
+  );
+
+  return select.get(checkIn.id) as CheckInRecord;
 }
 
 export default database;

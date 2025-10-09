@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
-import { insertCheckIn, listCheckInsByUser } from "@/lib/checkIns";
+import { listCheckInsByUser, saveCheckInForToday } from "@/lib/checkIns";
 
 function validatePayload(body: unknown) {
   if (!body || typeof body !== "object") {
@@ -42,15 +42,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
-  const entry = insertCheckIn({
-    userId: user.id,
-    date: new Date().toISOString(),
+  const result = saveCheckInForToday(user.id, {
     moodScore: payload.moodScore,
     stressScore: payload.stressScore,
     notes: payload.notes,
   });
 
-  return NextResponse.json({ checkIn: entry }, { status: 201 });
+  return NextResponse.json(
+    { checkIn: result.checkIn, updated: result.wasUpdated },
+    { status: result.wasUpdated ? 200 : 201 }
+  );
 }
 
 export async function GET(request: NextRequest) {
