@@ -65,8 +65,11 @@ export function getDashboardSummary(userId: string): CheckInSummary {
   };
 }
 
-export function getTodayCheckIn(userId: string | number): CheckInRecord | undefined {
-  const bounds = getDayBounds(new Date());
+export function getCheckInForDate(
+  userId: string | number,
+  reference: Date
+): CheckInRecord | undefined {
+  const bounds = getDayBounds(reference);
 
   return findCheckInByUserAndDateRange(
     userId,
@@ -75,15 +78,20 @@ export function getTodayCheckIn(userId: string | number): CheckInRecord | undefi
   );
 }
 
-export function saveCheckInForToday(
+export function getTodayCheckIn(userId: string | number): CheckInRecord | undefined {
+  return getCheckInForDate(userId, new Date());
+}
+
+export function saveCheckInForDate(
   userId: string | number,
+  reference: Date,
   payload: {
     moodScore: number;
     stressScore: number;
     notes: string | null;
   }
 ): { checkIn: CheckInRecord; wasUpdated: boolean } {
-  const bounds = getDayBounds(new Date());
+  const bounds = getDayBounds(reference);
   const existing = findCheckInByUserAndDateRange(
     userId,
     bounds.start.toISOString(),
@@ -103,13 +111,24 @@ export function saveCheckInForToday(
 
   const entry = insertCheckIn({
     userId,
-    date: new Date().toISOString(),
+    date: bounds.start.toISOString(),
     moodScore: payload.moodScore,
     stressScore: payload.stressScore,
     notes: payload.notes,
   });
 
   return { checkIn: entry, wasUpdated: false };
+}
+
+export function saveCheckInForToday(
+  userId: string | number,
+  payload: {
+    moodScore: number;
+    stressScore: number;
+    notes: string | null;
+  }
+): { checkIn: CheckInRecord; wasUpdated: boolean } {
+  return saveCheckInForDate(userId, new Date(), payload);
 }
 
 export { listCheckInsByUser };

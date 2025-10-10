@@ -2,7 +2,8 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
-import { getTodayCheckIn } from "@/lib/checkIns";
+import { getCheckInForDate } from "@/lib/checkIns";
+import { DailyCheckInDateSelector } from "@/components/daily-check-in-date-selector";
 
 async function submitCheckIn(formData: FormData) {
   "use server";
@@ -13,6 +14,19 @@ async function submitCheckIn(formData: FormData) {
   const triggers = (formData.get("triggers") as string | null)?.trim() ?? "";
   const highlight = (formData.get("highlight") as string | null)?.trim() ?? "";
   const intention = (formData.get("intention") as string | null)?.trim() ?? "";
+  const checkInDate = formData.get("checkInDate");
+
+  const normalizedDate = typeof checkInDate === "string" ? checkInDate : null;
+
+  const redirectWithError = () => {
+    const params = new URLSearchParams();
+    params.set("error", "1");
+    if (normalizedDate) {
+      params.set("date", normalizedDate);
+    }
+
+    redirect(`/daily-check-in?${params.toString()}`);
+  };
 
   const notes = [
     energyLevel ? `Energia: ${energyLevel}` : null,
@@ -23,14 +37,15 @@ async function submitCheckIn(formData: FormData) {
     .filter(Boolean)
     .join(" | ");
 
-  if (Number.isNaN(moodScore) || Number.isNaN(stressScore)) {
-    redirect("/daily-check-in?error=1");
+  if (Number.isNaN(moodScore) || Number.isNaN(stressScore) || !normalizedDate) {
+    redirectWithError();
   }
 
   const body = {
     moodScore,
     stressScore,
     notes,
+    date: normalizedDate,
   };
 
   const origin = headers().get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
@@ -50,7 +65,7 @@ async function submitCheckIn(formData: FormData) {
   });
 
   if (!response.ok) {
-    redirect("/daily-check-in?error=1");
+    redirectWithError();
   }
 
   revalidatePath("/home");
@@ -60,13 +75,19 @@ async function submitCheckIn(formData: FormData) {
 export default async function DailyCheckInPage({
   searchParams,
 }: {
-  searchParams: { error?: string };
+  searchParams: { error?: string; date?: string };
 }) {
   const user = await requireUser();
-  const todaysCheckIn = getTodayCheckIn(user.id);
-  const parsedNotes = parseNotes(todaysCheckIn?.notes ?? null);
-  const defaultMood = todaysCheckIn?.moodScore ?? 3;
-  const defaultStress = todaysCheckIn?.stressScore ?? 5;
+  const availableDates = buildPastWeekOptions();
+  const selectedDateParam = searchParams?.date;
+  const selectedDateOption = selectedDateParam
+    ? availableDates.find((item) => item.value === selectedDateParam)
+    : undefined;
+  const activeDateOption = selectedDateOption ?? availableDates[0];
+  const existingCheckIn = getCheckInForDate(user.id, activeDateOption.date);
+  const parsedNotes = parseNotes(existingCheckIn?.notes ?? null);
+  const defaultMood = existingCheckIn?.moodScore ?? 3;
+  const defaultStress = existingCheckIn?.stressScore ?? 5;
   const defaultEnergy = parsedNotes.energyLevel ?? "Estável";
   const showError = searchParams?.error === "1";
 
@@ -76,22 +97,35 @@ export default async function DailyCheckInPage({
         <p className="text-xs uppercase tracking-[0.25em] text-amber-300">Rotina</p>
         <h1 className="text-3xl font-semibold text-white">Radar emocional diário</h1>
         <p className="text-sm text-slate-300">
-          Reserve dois minutos para perceber como você chega hoje. Essas pistas orientam ajustes de escala, pausas táticas e rituais que mantêm a sua saúde.
+          Reserve dois minutos para perceber como você chegou nesse dia. Essas pistas orientam ajustes de escala, pausas táticas e
+          rituais que mantêm a sua saúde.
         </p>
       </header>
+
+      <section className="flex flex-col gap-3 rounded-3xl border border-slate-800/70 bg-slate-900/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-sm font-semibold text-white">Selecione a data do check-in</h2>
+          <p className="text-xs text-slate-400">Atualize ou preencha registros dos últimos 7 dias.</p>
+        </div>
+        <DailyCheckInDateSelector
+          options={availableDates.map((item) => ({ value: item.value, label: item.label }))}
+          selected={activeDateOption.value}
+        />
+      </section>
 
       {showError && (
         <div className="rounded-2xl border border-rose-400/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           Não conseguimos salvar seu check-in. Tente novamente em instantes.
         </div>
       )}
-      {todaysCheckIn && !showError && (
+      {existingCheckIn && !showError && (
         <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-          Você já registrou seu check-in hoje. Ajuste os dados abaixo caso queira atualizar o relato.
+          Você já registrou seu check-in {activeDateOption.message}. Ajuste os dados abaixo caso queira atualizar o relato.
         </div>
       )}
 
       <form action={submitCheckIn} className="space-y-8">
+        <input type="hidden" name="checkInDate" value={activeDateOption.value} />
         <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
           <h2 className="text-lg font-semibold text-white">1. Como está o humor geral?</h2>
           <p className="mt-2 text-sm text-slate-400">Use a escala para sinalizar se você chega leve, neutro ou sob pressão.</p>
@@ -196,11 +230,62 @@ export default async function DailyCheckInPage({
           type="submit"
           className="w-full cursor-pointer rounded-2xl bg-gradient-to-r from-blue-900 to-amber-400 px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/30 transition hover:shadow-amber-500/50"
         >
-          {todaysCheckIn ? "Atualizar check-in" : "Enviar check-in"}
+          {existingCheckIn ? "Atualizar check-in" : "Enviar check-in"}
         </button>
       </form>
     </div>
   );
+}
+
+type PastWeekOption = {
+  value: string;
+  label: string;
+  message: string;
+  date: Date;
+};
+
+function buildPastWeekOptions(): PastWeekOption[] {
+  const today = new Date();
+  const normalizedToday = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const selectFormatter = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+  });
+  const messageFormatter = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "long",
+  });
+
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(normalizedToday);
+    date.setUTCDate(date.getUTCDate() - index);
+
+    const rawSelectLabel = selectFormatter.format(date).replace(",", " •");
+    const selectLabel = capitalize(rawSelectLabel);
+    const relativeLabel = index === 0 ? "Hoje" : index === 1 ? "Ontem" : selectLabel;
+    const label = index <= 1 ? `${relativeLabel} • ${selectLabel}` : selectLabel;
+    const message = index === 0 ? "hoje" : index === 1 ? "ontem" : `em ${capitalize(messageFormatter.format(date))}`;
+
+    return {
+      value: formatISODate(date),
+      label,
+      message,
+      date,
+    } satisfies PastWeekOption;
+  });
+}
+
+function formatISODate(date: Date) {
+  return date.toISOString().slice(0, 10);
+}
+
+function capitalize(value: string) {
+  if (!value) {
+    return value;
+  }
+
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 function parseNotes(notes: string | null) {
