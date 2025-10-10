@@ -141,7 +141,11 @@ export default async function DailyCheckInPage({
         </div>
       )}
 
-      <form action={submitCheckIn} className="space-y-8">
+      <form
+        key={activeDateOption.value}
+        action={submitCheckIn}
+        className="space-y-8"
+      >
         <input type="hidden" name="checkInDate" value={activeDateOption.value} />
         <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
           <h2 className="text-lg font-semibold text-white">1. Como está o humor geral?</h2>
