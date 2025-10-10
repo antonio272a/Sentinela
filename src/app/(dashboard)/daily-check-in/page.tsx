@@ -79,12 +79,29 @@ export default async function DailyCheckInPage({
 }) {
   const user = await requireUser();
   const availableDates = buildPastWeekOptions();
-  const selectedDateParam = searchParams?.date;
-  const selectedDateOption = selectedDateParam
-    ? availableDates.find((item) => item.value === selectedDateParam)
-    : undefined;
-  const activeDateOption = selectedDateOption ?? availableDates[0];
-  const existingCheckIn = getCheckInForDate(user.id, activeDateOption.date);
+  const todayOption = availableDates[0];
+  const earliestOption = availableDates[availableDates.length - 1];
+  const todayDate = parseISODate(todayOption.value);
+  const earliestDate = parseISODate(earliestOption.value);
+  const selectedDateParam = searchParams?.date?.trim();
+
+  let activeDateValue = todayOption.value;
+
+  if (selectedDateParam) {
+    try {
+      const candidate = parseISODate(selectedDateParam);
+      if (candidate <= todayDate && candidate >= earliestDate) {
+        activeDateValue = formatISODate(candidate);
+      }
+    } catch {
+      // ignore invalid date values supplied via the query string
+    }
+  }
+
+  const activeDateOption =
+    availableDates.find((item) => item.value === activeDateValue) ?? todayOption;
+  const activeDate = parseISODate(activeDateOption.value);
+  const existingCheckIn = getCheckInForDate(user.id, activeDate);
   const parsedNotes = parseNotes(existingCheckIn?.notes ?? null);
   const defaultMood = existingCheckIn?.moodScore ?? 3;
   const defaultStress = existingCheckIn?.stressScore ?? 5;
@@ -241,7 +258,6 @@ type PastWeekOption = {
   value: string;
   label: string;
   message: string;
-  date: Date;
 };
 
 function buildPastWeekOptions(): PastWeekOption[] {
@@ -271,13 +287,22 @@ function buildPastWeekOptions(): PastWeekOption[] {
       value: formatISODate(date),
       label,
       message,
-      date,
     } satisfies PastWeekOption;
   });
 }
 
 function formatISODate(date: Date) {
   return date.toISOString().slice(0, 10);
+}
+
+function parseISODate(value: string): Date {
+  const [year, month, day] = value.split("-").map((segment) => Number.parseInt(segment, 10));
+
+  if (!year || Number.isNaN(year) || !month || Number.isNaN(month) || !day || Number.isNaN(day)) {
+    throw new Error(`Invalid ISO date received: ${value}`);
+  }
+
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 function capitalize(value: string) {

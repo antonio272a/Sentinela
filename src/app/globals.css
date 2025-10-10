@@ -56,6 +56,9 @@ body {
   font-family: var(--font-poppins), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   text-rendering: optimizeLegibility;
   background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: top center;
 }
 
 a {
@@ -97,6 +100,8 @@ button,
       var(--sentinel-gradient-middle) 40%,
       var(--sentinel-gradient-end) 100%
     );
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .bg-sentinel-canvas {
@@ -105,4 +110,33 @@ button,
 
 .text-sentinel-foreground {
   color: var(--foreground);
+}
+
+@media (max-width: 640px) {
+  body {
+    background: linear-gradient(180deg, var(--color-deep-night) 0%, #081a39 55%, var(--color-midnight) 100%);
+    background-attachment: scroll;
+    background-size: 160% 160%;
+  }
+
+  .bg-sentinel-gradient {
+    background: radial-gradient(
+        160% 120% at 50% -10%,
+        rgba(59, 130, 246, 0.18) 0%,
+        rgba(59, 130, 246, 0) 65%
+      ),
+      radial-gradient(
+        140% 120% at 50% 110%,
+        rgba(168, 85, 247, 0.14) 0%,
+        rgba(168, 85, 247, 0) 70%
+      ),
+      linear-gradient(
+        180deg,
+        var(--sentinel-gradient-start) 0%,
+        var(--sentinel-gradient-middle) 45%,
+        var(--sentinel-gradient-end) 100%
+      );
+    background-size: cover;
+    background-position: top center;
+  }
 }
