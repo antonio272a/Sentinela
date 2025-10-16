@@ -32,13 +32,17 @@ type Alert = {
   message: string;
 };
 
-function average(values: number[]) {
-  if (!values.length) {
+function average(values: readonly number[] | null | undefined) {
+  const numericValues = Array.isArray(values)
+    ? values.filter((value): value is number => typeof value === "number")
+    : [];
+
+  if (numericValues.length === 0) {
     return null;
   }
 
-  const total = values.reduce((sum, value) => sum + value, 0);
-  return Math.round((total / values.length) * 10) / 10;
+  const total = numericValues.reduce((sum, value) => sum + value, 0);
+  return Math.round((total / numericValues.length) * 10) / 10;
 }
 
 function buildSeries(checkIns: ReturnType<typeof listCheckInsByUser>): NeuroMetricPoint[] {
@@ -81,9 +85,7 @@ function computeWeeklyAverages(series: NeuroMetricPoint[]) {
   };
 
   (Object.keys(result) as MetricKey[]).forEach((metric) => {
-    const values = recent
-      .map((item) => item[metric])
-      .filter((value): value is number => typeof value === "number");
+    const values = recent.map((item) => item[metric]);
     result[metric] = average(values);
   });
 
