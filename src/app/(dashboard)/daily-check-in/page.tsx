@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { getCheckInForDate } from "@/lib/checkIns";
 import { DailyCheckInDateSelector } from "@/components/daily-check-in-date-selector";
+import { ScoreSlider } from "@/components/score-slider";
 
 async function submitCheckIn(formData: FormData) {
   "use server";
@@ -164,19 +165,12 @@ export default async function DailyCheckInPage({
             Valores mais baixos indicam que sua reserva de dopamina pode estar comprometida. Ajuste o ritmo quando necessário.
           </p>
           <div className="mt-6">
-            <input
-              type="range"
+            <ScoreSlider
               name="energyScore"
-              min="0"
-              max="10"
               defaultValue={defaultEnergy}
-              className="w-full accent-amber-400"
-              required
+              minLabel="Esgotado"
+              maxLabel="Turbo"
             />
-            <div className="mt-2 flex justify-between text-xs text-slate-400">
-              <span>Esgotado</span>
-              <span>Turbo</span>
-            </div>
           </div>
         </section>
 
@@ -188,19 +182,12 @@ export default async function DailyCheckInPage({
             Essa escala monitora o desempenho do córtex pré-frontal. Observe quedas súbitas para recalibrar demandas cognitivas.
           </p>
           <div className="mt-6">
-            <input
-              type="range"
+            <ScoreSlider
               name="focusScore"
-              min="0"
-              max="10"
               defaultValue={defaultFocus}
-              className="w-full accent-amber-400"
-              required
+              minLabel="Nebuloso"
+              maxLabel="Laser"
             />
-            <div className="mt-2 flex justify-between text-xs text-slate-400">
-              <span>Nebuloso</span>
-              <span>Laser</span>
-            </div>
           </div>
         </section>
 
@@ -212,19 +199,12 @@ export default async function DailyCheckInPage({
             Níveis baixos revelam hiperatividade do sistema límbico. Identifique cedo para acionar suporte emocional.
           </p>
           <div className="mt-6">
-            <input
-              type="range"
+            <ScoreSlider
               name="emotionalBalanceScore"
-              min="0"
-              max="10"
               defaultValue={defaultEmotionalBalance}
-              className="w-full accent-amber-400"
-              required
+              minLabel="Reativo"
+              maxLabel="Estável"
             />
-            <div className="mt-2 flex justify-between text-xs text-slate-400">
-              <span>Reativo</span>
-              <span>Estável</span>
-            </div>
           </div>
         </section>
 
@@ -236,19 +216,12 @@ export default async function DailyCheckInPage({
             Use o indicador para acompanhar a recuperação noturna e evitar acúmulo de cortisol.
           </p>
           <div className="mt-6">
-            <input
-              type="range"
+            <ScoreSlider
               name="sleepQualityScore"
-              min="0"
-              max="10"
               defaultValue={defaultSleepQuality}
-              className="w-full accent-amber-400"
-              required
+              minLabel="Fragmentado"
+              maxLabel="Regenerador"
             />
-            <div className="mt-2 flex justify-between text-xs text-slate-400">
-              <span>Fragmentado</span>
-              <span>Regenerador</span>
-            </div>
           </div>
         </section>
 

@@ -137,6 +137,149 @@ if (!checkInColumnNames.has("energyScore")) {
   `);
 }
 
+const TEST_USER_EMAIL = "teste@teste.com";
+const TEST_USER_PASSWORD_HASH = "$2b$10$GGpg6F1XtEcT26XwbDj9suNYCcL3LsoUIw/04J0/hCQtfpuXZc4yq";
+
+ensureTestFixtures();
+
+function ensureTestFixtures() {
+  const normalizedBirthDate = "1990-01-01";
+
+  const selectUser = database.prepare(
+    `SELECT id FROM users WHERE email = ?`
+  );
+
+  const existingUser = selectUser.get(TEST_USER_EMAIL) as { id: number } | undefined;
+
+  let userId: number;
+
+  if (!existingUser) {
+    const insertUser = database.prepare(
+      `INSERT INTO users (name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt)
+       VALUES (?, ?, ?, ?, 'active', NULL, NULL, datetime('now'))`
+    );
+
+    const info = insertUser.run(
+      "Usuário Teste",
+      normalizedBirthDate,
+      TEST_USER_EMAIL,
+      TEST_USER_PASSWORD_HASH
+    );
+
+    userId = Number(info.lastInsertRowid);
+  } else {
+    userId = existingUser.id;
+
+    const updateUser = database.prepare(
+      `UPDATE users
+          SET name = ?,
+              birthDate = ?,
+              passwordHash = ?,
+              status = 'active',
+              verificationCode = NULL,
+              verificationCodeSentAt = NULL
+        WHERE id = ?`
+    );
+
+    updateUser.run("Usuário Teste", normalizedBirthDate, TEST_USER_PASSWORD_HASH, userId);
+  }
+
+  const findCheckInForDay = database.prepare(
+    `SELECT id FROM check_ins WHERE userId = ? AND date(date) = date(?) LIMIT 1`
+  );
+
+  const insertCheckInForDay = database.prepare(
+    `INSERT INTO check_ins (userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`
+  );
+
+  const updateCheckInForDay = database.prepare(
+    `UPDATE check_ins
+        SET date = ?,
+            energyScore = ?,
+            focusScore = ?,
+            emotionalBalanceScore = ?,
+            sleepQualityScore = ?,
+            notes = ?
+      WHERE id = ?`
+  );
+
+  const triggers = [
+    "Sobrecarga de reuniões",
+    "Demandas críticas de clientes",
+    "Noite com sono fragmentado",
+    "Feedbacks desafiadores",
+    "Pressão por prazos curtos",
+  ];
+
+  const highlights = [
+    "Reconhecimento do time",
+    "Entrega concluída com qualidade",
+    "Treino revigorante",
+    "Alinhamento estratégico",
+    "Tempo de foco profundo",
+  ];
+
+  const intentions = [
+    "Priorizar pausas conscientes",
+    "Delegar uma demanda complexa",
+    "Documentar aprendizados chave",
+    "Fazer check-in com o time",
+    "Bloquear agenda para foco",
+  ];
+
+  const clampScore = (value: number) => Math.max(0, Math.min(10, Math.round(value)));
+
+  const seedCheckIns = database.transaction(() => {
+    const reference = new Date();
+    reference.setUTCHours(0, 0, 0, 0);
+
+    for (let index = 0; index < 30; index += 1) {
+      const day = new Date(reference);
+      day.setUTCDate(reference.getUTCDate() - index);
+
+      const isoDate = day.toISOString();
+
+      const energyScore = clampScore(7 + Math.sin(index / 3) * 3 - (index % 9 === 0 ? 2 : 0));
+      const focusScore = clampScore(6 + Math.cos(index / 2.5) * 2 - (index % 7 === 3 ? 2 : 0));
+      const emotionalBalanceScore = clampScore(7 + Math.sin((index + 2) / 2.2) * 2);
+      const sleepQualityScore = clampScore(6 + Math.cos((index + 1) / 2.1) * 2 - (index % 6 === 2 ? 1 : 0));
+
+      const notes = [
+        `Gatilhos: ${triggers[index % triggers.length]}`,
+        `Ponto alto: ${highlights[index % highlights.length]}`,
+        `Intenção: ${intentions[index % intentions.length]}`,
+      ].join(" | ");
+
+      const existingEntry = findCheckInForDay.get(userId, isoDate) as { id: number } | undefined;
+
+      if (existingEntry) {
+        updateCheckInForDay.run(
+          isoDate,
+          energyScore,
+          focusScore,
+          emotionalBalanceScore,
+          sleepQualityScore,
+          notes,
+          existingEntry.id
+        );
+      } else {
+        insertCheckInForDay.run(
+          userId,
+          isoDate,
+          energyScore,
+          focusScore,
+          emotionalBalanceScore,
+          sleepQualityScore,
+          notes
+        );
+      }
+    }
+  });
+
+  seedCheckIns();
+}
+
 export function getUserByEmail(email: string): UserRecord | undefined {
   const statement = database.prepare(
     `SELECT id, name, birthDate, email, passwordHash, status, verificationCode, verificationCodeSentAt, createdAt
