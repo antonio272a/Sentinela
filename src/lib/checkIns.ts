@@ -11,8 +11,12 @@ import {
 export type CheckInSummary = {
   recentCheckIns: CheckInRecord[];
   latest?: CheckInRecord;
-  averageStress: number | null;
-  averageMood: number | null;
+  averages: {
+    energy: number | null;
+    focus: number | null;
+    emotionalBalance: number | null;
+    sleep: number | null;
+  };
   currentStreak: number;
 };
 
@@ -52,15 +56,19 @@ export function getDashboardSummary(userId: string): CheckInSummary {
 
   const recentCheckIns = listCheckInsByUserSince(userId, thirtyDaysAgo.toISOString());
   const latest = findLatestCheckIn(userId);
-  const averageStress = calculateAverage(recentCheckIns.map((item) => item.stressScore));
-  const averageMood = calculateAverage(recentCheckIns.map((item) => item.moodScore));
   const currentStreak = computeStreak(listCheckInsByUser(userId));
 
   return {
     recentCheckIns,
     latest,
-    averageStress,
-    averageMood,
+    averages: {
+      energy: calculateAverage(recentCheckIns.map((item) => item.energyScore)),
+      focus: calculateAverage(recentCheckIns.map((item) => item.focusScore)),
+      emotionalBalance: calculateAverage(
+        recentCheckIns.map((item) => item.emotionalBalanceScore)
+      ),
+      sleep: calculateAverage(recentCheckIns.map((item) => item.sleepQualityScore)),
+    },
     currentStreak,
   };
 }
@@ -86,8 +94,10 @@ export function saveCheckInForDate(
   userId: string | number,
   reference: Date,
   payload: {
-    moodScore: number;
-    stressScore: number;
+    energyScore: number;
+    focusScore: number;
+    emotionalBalanceScore: number;
+    sleepQualityScore: number;
     notes: string | null;
   }
 ): { checkIn: CheckInRecord; wasUpdated: boolean } {
@@ -101,8 +111,10 @@ export function saveCheckInForDate(
   if (existing) {
     const updated = updateCheckInRecord({
       id: existing.id,
-      moodScore: payload.moodScore,
-      stressScore: payload.stressScore,
+      energyScore: payload.energyScore,
+      focusScore: payload.focusScore,
+      emotionalBalanceScore: payload.emotionalBalanceScore,
+      sleepQualityScore: payload.sleepQualityScore,
       notes: payload.notes,
     });
 
@@ -112,8 +124,10 @@ export function saveCheckInForDate(
   const entry = insertCheckIn({
     userId,
     date: bounds.start.toISOString(),
-    moodScore: payload.moodScore,
-    stressScore: payload.stressScore,
+    energyScore: payload.energyScore,
+    focusScore: payload.focusScore,
+    emotionalBalanceScore: payload.emotionalBalanceScore,
+    sleepQualityScore: payload.sleepQualityScore,
     notes: payload.notes,
   });
 
@@ -123,8 +137,10 @@ export function saveCheckInForDate(
 export function saveCheckInForToday(
   userId: string | number,
   payload: {
-    moodScore: number;
-    stressScore: number;
+    energyScore: number;
+    focusScore: number;
+    emotionalBalanceScore: number;
+    sleepQualityScore: number;
     notes: string | null;
   }
 ): { checkIn: CheckInRecord; wasUpdated: boolean } {
