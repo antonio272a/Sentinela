@@ -57,7 +57,8 @@ async function submitCheckIn(formData: FormData) {
     date: normalizedDate,
   };
 
-  const origin = headers().get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
+  const headerList = await headers();
+  const origin = headerList.get("origin") ?? process.env.APP_URL ?? "http://localhost:3000";
   const cookieStore = await cookies();
   const cookieHeader = cookieStore
     .getAll()
