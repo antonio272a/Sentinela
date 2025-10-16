@@ -20,10 +20,17 @@ export type CheckInSummary = {
   currentStreak: number;
 };
 
-function calculateAverage(values: number[]) {
-  if (!values.length) return null;
-  const total = values.reduce((acc, value) => acc + value, 0);
-  return Math.round((total / values.length) * 10) / 10;
+function calculateAverage(values: readonly number[] | null | undefined) {
+  const numericValues = Array.isArray(values)
+    ? values.filter((value): value is number => typeof value === "number")
+    : [];
+
+  if (numericValues.length === 0) {
+    return null;
+  }
+
+  const total = numericValues.reduce((acc, value) => acc + value, 0);
+  return Math.round((total / numericValues.length) * 10) / 10;
 }
 
 function computeStreak(checkIns: CheckInRecord[]) {
