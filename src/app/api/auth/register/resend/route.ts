@@ -1,13 +1,9 @@
+export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getUserByEmail, refreshVerificationCode } from "@/lib/db";
 import { sendVerificationCodeEmail } from "@/lib/email";
-import {
-  VERIFICATION_RESEND_INTERVAL_MS,
-  calculateResendAvailableAt,
-  canResendVerification,
-  generateVerificationCode,
-} from "@/lib/verification";
+import { VERIFICATION_RESEND_INTERVAL_MS, calculateResendAvailableAt, canResendVerification, generateVerificationCode } from "@/lib/verification";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);

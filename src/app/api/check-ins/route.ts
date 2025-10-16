@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getUserFromRequest } from "@/lib/auth";
@@ -12,13 +13,7 @@ function validatePayload(body: unknown) {
     return null;
   }
 
-  const {
-    energyScore,
-    focusScore,
-    emotionalBalanceScore,
-    sleepQualityScore,
-    notes,
-  } = body as {
+  const { energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes } = body as {
     energyScore?: number;
     focusScore?: number;
     emotionalBalanceScore?: number;
@@ -84,22 +79,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Dados inválidos" }, { status: 400 });
   }
 
-  const result = saveCheckInForDate(
-    user.id,
-    payload.date,
-    {
-      energyScore: payload.energyScore,
-      focusScore: payload.focusScore,
-      emotionalBalanceScore: payload.emotionalBalanceScore,
-      sleepQualityScore: payload.sleepQualityScore,
-      notes: payload.notes,
-    }
-  );
+  const result = saveCheckInForDate(user.id, payload.date, {
+    energyScore: payload.energyScore,
+    focusScore: payload.focusScore,
+    emotionalBalanceScore: payload.emotionalBalanceScore,
+    sleepQualityScore: payload.sleepQualityScore,
+    notes: payload.notes,
+  });
 
-  return NextResponse.json(
-    { checkIn: result.checkIn, updated: result.wasUpdated },
-    { status: result.wasUpdated ? 200 : 201 }
-  );
+  return NextResponse.json({ checkIn: result.checkIn, updated: result.wasUpdated }, { status: result.wasUpdated ? 200 : 201 });
 }
 
 export async function GET(request: NextRequest) {

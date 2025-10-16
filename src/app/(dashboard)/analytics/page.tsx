@@ -1,3 +1,4 @@
+export const runtime = "nodejs";
 import { requireUser } from "@/lib/auth";
 import { listCheckInsByUser } from "@/lib/checkIns";
 import {
@@ -32,7 +33,7 @@ type Alert = {
   message: string;
 };
 
-function average(values: readonly number[] | null | undefined) {
+function average(values: readonly (number | null)[] | null | undefined) {
   const numericValues = Array.isArray(values)
     ? values.filter((value): value is number => typeof value === "number")
     : [];

@@ -1,14 +1,11 @@
+export const runtime = "nodejs";
 import bcrypt from "bcrypt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { createUser, getUserByEmail, updatePendingUser } from "@/lib/db";
 import { calculateAgeFromBirthDate, normalizeISODateOnly } from "@/lib/date";
 import { sendVerificationCodeEmail } from "@/lib/email";
-import {
-  VERIFICATION_RESEND_INTERVAL_MS,
-  calculateResendAvailableAt,
-  generateVerificationCode,
-} from "@/lib/verification";
+import { VERIFICATION_RESEND_INTERVAL_MS, calculateResendAvailableAt, generateVerificationCode } from "@/lib/verification";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);

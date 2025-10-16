@@ -1,13 +1,10 @@
+export const runtime = "nodejs";
 import bcrypt from "bcrypt";
 import { NextRequest, NextResponse } from "next/server";
 
 import { getUserByEmail } from "@/lib/db";
 import { calculateAgeFromBirthDate } from "@/lib/date";
-import {
-  DEFAULT_EXPIRATION,
-  SESSION_COOKIE_NAME,
-  createSessionToken,
-} from "@/lib/auth";
+import { DEFAULT_EXPIRATION, SESSION_COOKIE_NAME, createSessionToken } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);

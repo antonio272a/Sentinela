@@ -25,7 +25,7 @@ function calculateAverage(values: readonly number[] | null | undefined) {
     ? values.filter((value): value is number => typeof value === "number")
     : [];
 
-  if (numericValues.length === 0) {
+  if (!numericValues || numericValues.length === 0) {
     return null;
   }
 
