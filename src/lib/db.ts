@@ -37,6 +37,53 @@ if (!fs.existsSync(dataDirectory)) {
 
 const database = new Database(databasePath);
 database.pragma("journal_mode = WAL");
+database.pragma("busy_timeout = 5000");
+
+const seedLockPath = path.join(dataDirectory, ".seed.lock");
+const seedLockRetryDelayMs = 50;
+const seedLockTimeoutMs = 5000;
+
+function sleep(milliseconds: number) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+function withSeedLock<T>(action: () => T): T {
+  const start = Date.now();
+  let fileDescriptor: number | undefined;
+
+  for (;;) {
+    try {
+      fileDescriptor = fs.openSync(seedLockPath, "wx");
+      break;
+    } catch (error) {
+      if (!(error instanceof Error) || (error as NodeJS.ErrnoException).code !== "EEXIST") {
+        throw error;
+      }
+
+      if (Date.now() - start > seedLockTimeoutMs) {
+        throw new Error("Timed out waiting for database seed lock");
+      }
+
+      sleep(seedLockRetryDelayMs);
+    }
+  }
+
+  try {
+    return action();
+  } finally {
+    if (fileDescriptor !== undefined) {
+      fs.closeSync(fileDescriptor);
+    }
+
+    try {
+      fs.unlinkSync(seedLockPath);
+    } catch (error) {
+      if (!(error instanceof Error) || (error as NodeJS.ErrnoException).code !== "ENOENT") {
+        throw error;
+      }
+    }
+  }
+}
 
 database.exec(`
   CREATE TABLE IF NOT EXISTS users (
@@ -140,7 +187,7 @@ if (!checkInColumnNames.has("energyScore")) {
 const TEST_USER_EMAIL = "teste@teste.com";
 const TEST_USER_PASSWORD_HASH = "$2b$10$GGpg6F1XtEcT26XwbDj9suNYCcL3LsoUIw/04J0/hCQtfpuXZc4yq";
 
-ensureTestFixtures();
+withSeedLock(ensureTestFixtures);
 
 function ensureTestFixtures() {
   const normalizedBirthDate = "1990-01-01";
