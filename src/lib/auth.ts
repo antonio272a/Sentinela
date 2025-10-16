@@ -63,7 +63,7 @@ function sessionToUser(session: SessionPayload | null): AuthenticatedUser | null
   };
 }
 
-function getUserFromHeaderBag(headerBag: Headers): AuthenticatedUser | null {
+function getUserFromHeaderBag(headerBag: { get(name: string): string | null }): AuthenticatedUser | null {
   const id = headerBag.get("x-user-id");
   const email = headerBag.get("x-user-email");
   const name = headerBag.get("x-user-name");
@@ -76,7 +76,7 @@ function getUserFromHeaderBag(headerBag: Headers): AuthenticatedUser | null {
 }
 
 async function getUserFromCookiesStore(): Promise<AuthenticatedUser | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const sessionToken = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
   if (!sessionToken) {
@@ -103,7 +103,7 @@ export async function getUserFromRequest(request: NextRequest): Promise<Authenti
 }
 
 export async function requireUser(): Promise<AuthenticatedUser> {
-  const headerStore = headers();
+  const headerStore = await headers();
   const fromHeaders = getUserFromHeaderBag(headerStore);
 
   if (fromHeaders) {
