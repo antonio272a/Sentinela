@@ -8,9 +8,10 @@ import { DailyCheckInDateSelector } from "@/components/daily-check-in-date-selec
 async function submitCheckIn(formData: FormData) {
   "use server";
 
-  const moodScore = Number(formData.get("moodScore"));
-  const stressScore = Number(formData.get("stressScore"));
-  const energyLevel = formData.get("energyLevel") as string | null;
+  const energyScore = Number(formData.get("energyScore"));
+  const focusScore = Number(formData.get("focusScore"));
+  const emotionalBalanceScore = Number(formData.get("emotionalBalanceScore"));
+  const sleepQualityScore = Number(formData.get("sleepQualityScore"));
   const triggers = (formData.get("triggers") as string | null)?.trim() ?? "";
   const highlight = (formData.get("highlight") as string | null)?.trim() ?? "";
   const intention = (formData.get("intention") as string | null)?.trim() ?? "";
@@ -29,7 +30,6 @@ async function submitCheckIn(formData: FormData) {
   };
 
   const notes = [
-    energyLevel ? `Energia: ${energyLevel}` : null,
     triggers ? `Gatilhos: ${triggers}` : null,
     highlight ? `Ponto alto: ${highlight}` : null,
     intention ? `Intenção: ${intention}` : null,
@@ -37,13 +37,21 @@ async function submitCheckIn(formData: FormData) {
     .filter(Boolean)
     .join(" | ");
 
-  if (Number.isNaN(moodScore) || Number.isNaN(stressScore) || !normalizedDate) {
+  if (
+    Number.isNaN(energyScore) ||
+    Number.isNaN(focusScore) ||
+    Number.isNaN(emotionalBalanceScore) ||
+    Number.isNaN(sleepQualityScore) ||
+    !normalizedDate
+  ) {
     redirectWithError();
   }
 
   const body = {
-    moodScore,
-    stressScore,
+    energyScore,
+    focusScore,
+    emotionalBalanceScore,
+    sleepQualityScore,
     notes,
     date: normalizedDate,
   };
@@ -103,9 +111,10 @@ export default async function DailyCheckInPage({
   const activeDate = parseISODate(activeDateOption.value);
   const existingCheckIn = getCheckInForDate(user.id, activeDate);
   const parsedNotes = parseNotes(existingCheckIn?.notes ?? null);
-  const defaultMood = existingCheckIn?.moodScore ?? 3;
-  const defaultStress = existingCheckIn?.stressScore ?? 5;
-  const defaultEnergy = parsedNotes.energyLevel ?? "Estável";
+  const defaultEnergy = existingCheckIn?.energyScore ?? 6;
+  const defaultFocus = existingCheckIn?.focusScore ?? 6;
+  const defaultEmotionalBalance = existingCheckIn?.emotionalBalanceScore ?? 6;
+  const defaultSleepQuality = existingCheckIn?.sleepQualityScore ?? 6;
   const showError = searchParams?.error === "1";
 
   return (
@@ -148,73 +157,104 @@ export default async function DailyCheckInPage({
       >
         <input type="hidden" name="checkInDate" value={activeDateOption.value} />
         <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
-          <h2 className="text-lg font-semibold text-white">1. Como está o humor geral?</h2>
-          <p className="mt-2 text-sm text-slate-400">Use a escala para sinalizar se você chega leve, neutro ou sob pressão.</p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            {[1, 2, 3, 4, 5].map((value) => (
-              <label
-                key={value}
-                className="flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-4 py-2 text-sm text-slate-200 hover:border-amber-300/60"
-              >
-                <input
-                  type="radio"
-                  name="moodScore"
-                  value={value}
-                  defaultChecked={value === defaultMood}
-                  className="accent-amber-400"
-                  required
-                />
-                {value}
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
-          <h2 className="text-lg font-semibold text-white">2. Nível de energia física</h2>
-          <p className="mt-2 text-sm text-slate-400">Indique se o corpo acompanha o ritmo do dia.</p>
-          <div className="mt-6 grid grid-cols-5 gap-2 text-center text-xs text-slate-300">
-            {["Baixa", "Cautela", "Estável", "Firme", "Turbo"].map((label) => (
-              <label
-                key={label}
-                className="flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-slate-800/80 bg-slate-950/40 px-3 py-3 hover:border-amber-300/60"
-              >
-                <input
-                  type="radio"
-                  name="energyLevel"
-                  value={label}
-                  defaultChecked={label === defaultEnergy}
-                  className="accent-amber-400"
-                  required
-                />
-                <span className="text-xs text-slate-200">{label}</span>
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
-          <h2 className="text-lg font-semibold text-white">3. Nível de estresse percebido</h2>
-          <p className="mt-2 text-sm text-slate-400">Deslize para indicar a pressão do dia. 1 é tranquilo, 10 é alerta máximo.</p>
+          <h2 className="text-lg font-semibold text-white">
+            1. De 0 a 10, qual o seu nível de energia e disposição para as tarefas de hoje?
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Valores mais baixos indicam que sua reserva de dopamina pode estar comprometida. Ajuste o ritmo quando necessário.
+          </p>
           <div className="mt-6">
             <input
               type="range"
-              name="stressScore"
-              min="1"
+              name="energyScore"
+              min="0"
               max="10"
-              defaultValue={defaultStress}
+              defaultValue={defaultEnergy}
               className="w-full accent-amber-400"
+              required
             />
             <div className="mt-2 flex justify-between text-xs text-slate-400">
-              <span>Sereno</span>
-              <span>Alerta máximo</span>
+              <span>Esgotado</span>
+              <span>Turbo</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
+          <h2 className="text-lg font-semibold text-white">
+            2. De 0 a 10, quão fácil está sendo se concentrar e tomar decisões com clareza hoje?
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Essa escala monitora o desempenho do córtex pré-frontal. Observe quedas súbitas para recalibrar demandas cognitivas.
+          </p>
+          <div className="mt-6">
+            <input
+              type="range"
+              name="focusScore"
+              min="0"
+              max="10"
+              defaultValue={defaultFocus}
+              className="w-full accent-amber-400"
+              required
+            />
+            <div className="mt-2 flex justify-between text-xs text-slate-400">
+              <span>Nebuloso</span>
+              <span>Laser</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
+          <h2 className="text-lg font-semibold text-white">
+            3. De 0 a 10, como você avalia seu equilíbrio emocional hoje?
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Níveis baixos revelam hiperatividade do sistema límbico. Identifique cedo para acionar suporte emocional.
+          </p>
+          <div className="mt-6">
+            <input
+              type="range"
+              name="emotionalBalanceScore"
+              min="0"
+              max="10"
+              defaultValue={defaultEmotionalBalance}
+              className="w-full accent-amber-400"
+              required
+            />
+            <div className="mt-2 flex justify-between text-xs text-slate-400">
+              <span>Reativo</span>
+              <span>Estável</span>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6">
+          <h2 className="text-lg font-semibold text-white">
+            4. De 0 a 10, como você avalia a qualidade do seu sono e o quanto acordou descansado(a)?
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Use o indicador para acompanhar a recuperação noturna e evitar acúmulo de cortisol.
+          </p>
+          <div className="mt-6">
+            <input
+              type="range"
+              name="sleepQualityScore"
+              min="0"
+              max="10"
+              defaultValue={defaultSleepQuality}
+              className="w-full accent-amber-400"
+              required
+            />
+            <div className="mt-2 flex justify-between text-xs text-slate-400">
+              <span>Fragmentado</span>
+              <span>Regenerador</span>
             </div>
           </div>
         </section>
 
         <section className="rounded-3xl border border-slate-800/70 bg-slate-900/70 p-6 space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-white">4. Houve algum gatilho ou preocupação central?</h2>
+            <h2 className="text-lg font-semibold text-white">Notas adicionais</h2>
             <textarea
               name="triggers"
               rows={3}
@@ -319,12 +359,10 @@ function capitalize(value: string) {
 
 function parseNotes(notes: string | null) {
   const parsed: {
-    energyLevel: string | null;
     triggers: string | null;
     highlight: string | null;
     intention: string | null;
   } = {
-    energyLevel: null,
     triggers: null,
     highlight: null,
     intention: null,
@@ -348,9 +386,7 @@ function parseNotes(notes: string | null) {
       continue;
     }
 
-    if (key.startsWith("energia")) {
-      parsed.energyLevel = value;
-    } else if (key.startsWith("gatilho")) {
+    if (key.startsWith("gatilho")) {
       parsed.triggers = value;
     } else if (key.startsWith("ponto alto")) {
       parsed.highlight = value;

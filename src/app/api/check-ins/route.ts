@@ -12,9 +12,17 @@ function validatePayload(body: unknown) {
     return null;
   }
 
-  const { moodScore, stressScore, notes } = body as {
-    moodScore?: number;
-    stressScore?: number;
+  const {
+    energyScore,
+    focusScore,
+    emotionalBalanceScore,
+    sleepQualityScore,
+    notes,
+  } = body as {
+    energyScore?: number;
+    focusScore?: number;
+    emotionalBalanceScore?: number;
+    sleepQualityScore?: number;
     notes?: string;
     date?: unknown;
   };
@@ -43,21 +51,25 @@ function validatePayload(body: unknown) {
     return null;
   }
 
-  if (
-    typeof moodScore !== "number" ||
-    Number.isNaN(moodScore) ||
-    typeof stressScore !== "number" ||
-    Number.isNaN(stressScore)
-  ) {
+  const values = [energyScore, focusScore, emotionalBalanceScore, sleepQualityScore];
+
+  if (values.some((value) => typeof value !== "number" || Number.isNaN(value))) {
     return null;
   }
 
   return {
-    moodScore: Math.max(1, Math.min(5, Math.round(moodScore))),
-    stressScore: Math.max(1, Math.min(10, Math.round(stressScore))),
+    energyScore: clampScore(energyScore!),
+    focusScore: clampScore(focusScore!),
+    emotionalBalanceScore: clampScore(emotionalBalanceScore!),
+    sleepQualityScore: clampScore(sleepQualityScore!),
     notes: notes && typeof notes === "string" ? notes : null,
     date: normalizedTarget,
   };
+}
+
+function clampScore(value: number) {
+  const normalized = Math.round(value);
+  return Math.min(10, Math.max(0, normalized));
 }
 
 export async function POST(request: NextRequest) {
@@ -76,8 +88,10 @@ export async function POST(request: NextRequest) {
     user.id,
     payload.date,
     {
-      moodScore: payload.moodScore,
-      stressScore: payload.stressScore,
+      energyScore: payload.energyScore,
+      focusScore: payload.focusScore,
+      emotionalBalanceScore: payload.emotionalBalanceScore,
+      sleepQualityScore: payload.sleepQualityScore,
       notes: payload.notes,
     }
   );

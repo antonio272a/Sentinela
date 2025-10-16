@@ -20,8 +20,10 @@ export interface CheckInRecord {
   id: number;
   userId: number;
   date: string;
-  moodScore: number;
-  stressScore: number;
+  energyScore: number;
+  focusScore: number;
+  emotionalBalanceScore: number;
+  sleepQualityScore: number;
   notes: string | null;
   createdAt: string;
 }
@@ -53,8 +55,10 @@ database.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     date TEXT NOT NULL,
-    moodScore INTEGER NOT NULL CHECK(moodScore BETWEEN 1 AND 5),
-    stressScore INTEGER NOT NULL CHECK(stressScore BETWEEN 1 AND 10),
+    energyScore INTEGER NOT NULL CHECK(energyScore BETWEEN 0 AND 10),
+    focusScore INTEGER NOT NULL CHECK(focusScore BETWEEN 0 AND 10),
+    emotionalBalanceScore INTEGER NOT NULL CHECK(emotionalBalanceScore BETWEEN 0 AND 10),
+    sleepQualityScore INTEGER NOT NULL CHECK(sleepQualityScore BETWEEN 0 AND 10),
     notes TEXT,
     createdAt TEXT NOT NULL DEFAULT (datetime('now'))
   );
@@ -79,6 +83,58 @@ if (!userColumnNames.has("verificationCode")) {
 
 if (!userColumnNames.has("verificationCodeSentAt")) {
   database.exec("ALTER TABLE users ADD COLUMN verificationCodeSentAt TEXT");
+}
+
+const checkInColumns = database.prepare("PRAGMA table_info(check_ins)").all() as { name: string }[];
+const checkInColumnNames = new Set(checkInColumns.map((column) => column.name));
+
+if (!checkInColumnNames.has("energyScore")) {
+  database.exec(`
+    ALTER TABLE check_ins RENAME TO check_ins_legacy;
+
+    CREATE TABLE check_ins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      energyScore INTEGER NOT NULL CHECK(energyScore BETWEEN 0 AND 10),
+      focusScore INTEGER NOT NULL CHECK(focusScore BETWEEN 0 AND 10),
+      emotionalBalanceScore INTEGER NOT NULL CHECK(emotionalBalanceScore BETWEEN 0 AND 10),
+      sleepQualityScore INTEGER NOT NULL CHECK(sleepQualityScore BETWEEN 0 AND 10),
+      notes TEXT,
+      createdAt TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    INSERT INTO check_ins (
+      id,
+      userId,
+      date,
+      energyScore,
+      focusScore,
+      emotionalBalanceScore,
+      sleepQualityScore,
+      notes,
+      createdAt
+    )
+    SELECT
+      id,
+      userId,
+      date,
+      MIN(10, MAX(0, ROUND((COALESCE(moodScore, 3) - 1) * 2.5))),
+      6,
+      6,
+      6,
+      notes,
+      createdAt
+    FROM check_ins_legacy;
+
+    DROP TABLE check_ins_legacy;
+
+    CREATE INDEX IF NOT EXISTS idx_check_ins_user_date
+      ON check_ins(userId, datetime(date));
+
+    CREATE UNIQUE INDEX IF NOT EXISTS uniq_check_ins_user_day
+      ON check_ins(userId, date(date));
+  `);
 }
 
 export function getUserByEmail(email: string): UserRecord | undefined {
@@ -192,13 +248,15 @@ function toNumberId(userId: string | number): number {
 export function insertCheckIn(checkIn: {
   userId: string | number;
   date: string;
-  moodScore: number;
-  stressScore: number;
+  energyScore: number;
+  focusScore: number;
+  emotionalBalanceScore: number;
+  sleepQualityScore: number;
   notes: string | null;
 }): CheckInRecord {
   const insert = database.prepare(
-    `INSERT INTO check_ins (userId, date, moodScore, stressScore, notes, createdAt)
-     VALUES (@userId, @date, @moodScore, @stressScore, @notes, datetime('now'))`
+    `INSERT INTO check_ins (userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt)
+     VALUES (@userId, @date, @energyScore, @focusScore, @emotionalBalanceScore, @sleepQualityScore, @notes, datetime('now'))`
   );
 
   const payload = {
@@ -208,7 +266,7 @@ export function insertCheckIn(checkIn: {
 
   const info = insert.run(payload);
   const select = database.prepare(
-    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+    `SELECT id, userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt
        FROM check_ins WHERE id = ?`
   );
   return select.get(Number(info.lastInsertRowid)) as CheckInRecord;
@@ -216,7 +274,7 @@ export function insertCheckIn(checkIn: {
 
 export function listCheckInsByUser(userId: string | number): CheckInRecord[] {
   const statement = database.prepare(
-    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+    `SELECT id, userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt
        FROM check_ins
        WHERE userId = ?
        ORDER BY datetime(date) DESC`
@@ -230,7 +288,7 @@ export function listCheckInsByUserSince(
   sinceISODate: string
 ): CheckInRecord[] {
   const statement = database.prepare(
-    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+    `SELECT id, userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt
        FROM check_ins
        WHERE userId = ? AND datetime(date) >= datetime(?)
        ORDER BY datetime(date) DESC`
@@ -241,7 +299,7 @@ export function listCheckInsByUserSince(
 
 export function findLatestCheckIn(userId: string | number): CheckInRecord | undefined {
   const statement = database.prepare(
-    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+    `SELECT id, userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt
        FROM check_ins
        WHERE userId = ?
        ORDER BY datetime(date) DESC
@@ -257,7 +315,7 @@ export function findCheckInByUserAndDateRange(
   endISODate: string
 ): CheckInRecord | undefined {
   const statement = database.prepare(
-    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+    `SELECT id, userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt
        FROM check_ins
        WHERE userId = ?
          AND datetime(date) >= datetime(?)
@@ -273,14 +331,18 @@ export function findCheckInByUserAndDateRange(
 
 export function updateCheckIn(checkIn: {
   id: number;
-  moodScore: number;
-  stressScore: number;
+  energyScore: number;
+  focusScore: number;
+  emotionalBalanceScore: number;
+  sleepQualityScore: number;
   notes: string | null;
 }): CheckInRecord {
   const update = database.prepare(
     `UPDATE check_ins
-        SET moodScore = @moodScore,
-            stressScore = @stressScore,
+        SET energyScore = @energyScore,
+            focusScore = @focusScore,
+            emotionalBalanceScore = @emotionalBalanceScore,
+            sleepQualityScore = @sleepQualityScore,
             notes = @notes
       WHERE id = @id`
   );
@@ -288,7 +350,7 @@ export function updateCheckIn(checkIn: {
   update.run(checkIn);
 
   const select = database.prepare(
-    `SELECT id, userId, date, moodScore, stressScore, notes, createdAt
+    `SELECT id, userId, date, energyScore, focusScore, emotionalBalanceScore, sleepQualityScore, notes, createdAt
        FROM check_ins WHERE id = ?`
   );
 
