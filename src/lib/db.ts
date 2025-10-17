@@ -31,6 +31,9 @@ export interface CheckInRecord {
 let dataDirectory;
 if (process.env.DB_PATH) {
   dataDirectory = process.env.DB_PATH;
+  if (!fs.existsSync(dataDirectory)) {
+    fs.mkdirSync(dataDirectory, { recursive: true });
+  }
 } else {
   dataDirectory = path.join(process.cwd(), "data");
   if (!fs.existsSync(dataDirectory)) {
