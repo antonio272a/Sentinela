@@ -105,7 +105,7 @@ function detectAlerts(series: NeuroMetricPoint[]): Alert[] {
         type: "average",
         message: `${metricLabels[metric]} com média semanal ${value.toFixed(
           1
-        )} (< 6). Recomende acompanhamento psicológico.`,
+        )} (< 6). Recomendado acompanhamento.`,
       });
     }
   });
@@ -133,7 +133,7 @@ function detectAlerts(series: NeuroMetricPoint[]): Alert[] {
               type: "drop",
               message: `${metricLabels[metric]} caiu ${drop.toFixed(
                 1
-              )} pontos entre ${streak[0].date} e ${streak[2].date}. Acione rede de suporte.`,
+              )} pontos entre ${streak[0].date} e ${streak[2].date}. Atenção!`,
             });
           }
         }
