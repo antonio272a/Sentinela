@@ -28,7 +28,17 @@ export interface CheckInRecord {
   createdAt: string;
 }
 
-const dataDirectory = path.join(process.cwd(), "data");
+let dataDirectory;
+if (process.env.DB_PATH) {
+  const dbPath = process.env.DB_PATH;
+  if (!fs.existsSync(dbPath)) {
+    fs.mkdirSync(dbPath, { recursive: true });
+  }
+
+  dataDirectory = dbPath;
+} else {
+  dataDirectory = path.join(process.cwd(), "data");
+}
 const databasePath = path.join(dataDirectory, "sentinela.db");
 
 if (!fs.existsSync(dataDirectory)) {
