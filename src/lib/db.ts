@@ -33,12 +33,11 @@ if (process.env.DB_PATH) {
   dataDirectory = process.env.DB_PATH;
 } else {
   dataDirectory = path.join(process.cwd(), "data");
+  if (!fs.existsSync(dataDirectory)) {
+    fs.mkdirSync(dataDirectory, { recursive: true });
+  }
 }
 const databasePath = path.join(dataDirectory, "sentinela.db");
-
-if (!fs.existsSync(dataDirectory)) {
-  fs.mkdirSync(dataDirectory, { recursive: true });
-}
 
 const database = new Database(databasePath);
 database.pragma("journal_mode = WAL");
