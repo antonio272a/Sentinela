@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { calculateAgeFromBirthDate } from "@/lib/date";
+import { TermsOfConfidentiality } from "./TermsOfConfidentiality";
 
 interface FormState {
   name: string;
@@ -123,6 +124,7 @@ export function RegisterForm() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   useEffect(() => {
     if (!verificationDetails) {
@@ -226,6 +228,11 @@ export function RegisterForm() {
       return;
     }
 
+    if (!termsAccepted) {
+      setError("Para continuar, é necessário aceitar o Termo de Confidencialidade e Proteção de Dados.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await registerRequest({
@@ -240,6 +247,7 @@ export function RegisterForm() {
       setSuccess(response.message);
       setStep("verify");
       setForm(INITIAL_STATE);
+      setTermsAccepted(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Não foi possível criar conta.");
     } finally {
@@ -384,6 +392,30 @@ export function RegisterForm() {
               required
             />
             {passwordErrorMessage ? <p className="text-xs text-red-200">{passwordErrorMessage}</p> : null}
+          </div>
+          <div className="space-y-3 rounded-xl border border-white/10 bg-[#090f1f]/60 p-4">
+            <details className="group space-y-3 text-left text-xs text-slate-200">
+              <summary className="cursor-pointer text-sm font-semibold text-emerald-200 transition group-open:text-emerald-100">
+                Ler Termo de Confidencialidade e Proteção de Dados
+              </summary>
+              <div className="max-h-56 space-y-3 overflow-y-auto pr-2">
+                <TermsOfConfidentiality />
+              </div>
+            </details>
+            <label className="flex items-start gap-3 text-xs text-slate-200">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                className="mt-1 h-4 w-4 shrink-0 cursor-pointer rounded border border-white/20 bg-transparent text-emerald-400 transition focus:ring-emerald-300"
+                checked={termsAccepted}
+                onChange={(event) => setTermsAccepted(event.target.checked)}
+                required
+              />
+              <span>
+                Declaro que li e aceito o Termo de Confidencialidade e Proteção de Dados do aplicativo Sentinela.
+              </span>
+            </label>
           </div>
           {error ? (
             <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{error}</p>
