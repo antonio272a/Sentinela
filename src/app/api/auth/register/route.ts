@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    console.log("Error in user registration:", error);
     return NextResponse.json(
       {
         message: "Não foi possível enviar o código de verificação. Tente novamente em instantes.",
