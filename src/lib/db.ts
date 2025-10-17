@@ -30,12 +30,7 @@ export interface CheckInRecord {
 
 let dataDirectory;
 if (process.env.DB_PATH) {
-  const dbPath = process.env.DB_PATH;
-  if (!fs.existsSync(dbPath)) {
-    fs.mkdirSync(dbPath, { recursive: true });
-  }
-
-  dataDirectory = dbPath;
+  dataDirectory = process.env.DB_PATH;
 } else {
   dataDirectory = path.join(process.cwd(), "data");
 }
