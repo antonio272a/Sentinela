@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true, // desliga ESLint no build
-  },
-  typescript: {
-    ignoreBuildErrors: true, // desliga TypeScript type-check no build
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: true },
+  experimental: {
+    forceNodeRuntime: true, // evita builds Edge
   },
 };
 
